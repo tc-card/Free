@@ -12,7 +12,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://cdn.tailwindcss.com" rel="stylesheet">
     <link rel="preload" href="https://tccards.tn/Assets/bg.png" as="image">
-    <link rel="preload" href="https://cdn.tailwindcss.com" as="script">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <link rel="stylesheet" href="style.css">
 <style>
@@ -34,70 +33,5 @@
 <body>
 <div class="loader"></div>
 <div class="card-container" style="display:none;"></div>
-
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    const hash = window.location.hash.substring(1);
-    if (!hash) return showError("Invalid profile link");
-    
-    // Try both ID and link formats
-    const identifier = hash.includes('_') ? hash.split('_')[1] : hash;
-    const isIdLookup = hash.startsWith('id_');
-    
-    fetchProfile(identifier, isIdLookup);
-});
-
-function fetchProfile(identifier, isIdLookup = false) {
-    const callbackName = `profileCallback_${Date.now()}`;
-    window[callbackName] = function(data) {
-        delete window[callbackName];
-        handleProfileData(data);
-    };
-
-    const script = document.createElement('script');
-    const param = isIdLookup ? 'id' : 'link';
-    script.src = `https://script.google.com/macros/s/AKfycbySmVtCmRIoBKZJoVZi9YLUIy4q0TsFLif6p0vZkSgt1QMSRE5be4OauPPu1bj-ep8CjQ/exec?${param}=${encodeURIComponent(identifier)}&callback=${callbackName}`;
-    script.onerror = () => showError("Failed to load profile data");
-    document.head.appendChild(script);
-}
-
-function handleProfileData(data) {
-    document.querySelector('.loader').style.display = 'none';
-    const container = document.querySelector('.card-container');
-    
-    if (!data || data.status === 'error') {
-        return showError(data?.message || "Profile not found");
-    }
-
-    container.style.display = 'block';
-    container.innerHTML = `
-        <!-- Your profile rendering HTML here -->
-        <div class="profile-container">
-            <h2>${escapeHtml(data.Name)}</h2>
-            <!-- Rest of your template -->
-        </div>
-    `;
-}
-
-function showError(message) {
-    document.querySelector('.loader').style.display = 'none';
-    document.querySelector('.card-container').innerHTML = `
-        <div class="error">
-            <h3>Error</h3>
-            <p>${escapeHtml(message)}</p>
-            <a href="/">Go Home</a>
-        </div>
-    `;
-}
-
-function escapeHtml(unsafe) {
-    return unsafe.toString()
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
-</script>
 </body>
 </html>
