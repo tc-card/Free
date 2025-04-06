@@ -7,6 +7,17 @@
     <link rel="icon" href="https://tccards.tn/Assets/150.png" type="image/x-icon">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <title>404 - Page Not Found</title>
+    <script>
+        // Capture the 404 path and redirect
+        const path = window.location.pathname;
+        if (path.startsWith('/@')) {
+            const username = path.substring(2);
+            window.location.href = `/#${username}`;
+        } else if (path.startsWith('/profile/')) {
+            const username = path.substring(9); // Adjusted to capture the username correctly
+            window.location.href = `/#${username}`;
+        }
+    </script>
     <style>
         body {
             font-family: 'Arial', sans-serif;

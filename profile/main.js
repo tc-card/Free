@@ -18,11 +18,11 @@ document.addEventListener("DOMContentLoaded", function() {
     // Database configuration with plan types
     const databases = [
         {
-            id: 'AKfycbxVpxX2Dt79ZIfW6lyhPhCUaJ7QaJJUHUsoD4CgQ3AR9dVntSpKRghnlWQM0TbSxla3-Q',
+            id: 'AKfycbxVpxX2Dt79ZIfW6lyhPhCUaJ7QaJJUsdsdHUsoD4CgQ3AR9dVntSpKRghnlWQM0TbSxla3-Q',
             plan: 'free'
         },
         {
-            id: 'AKfycbxVpXpyDZHqvtTHTshPhCUaJdsf-dsfgddsggroD4CgQ3AR23ntSpKRlaerB6Qqw7er3-Q',
+            id: 'AKfycbxVpxX2Dt79ZIfW6lyhPhCUaJ7QaJJUHUsoD4CgQ3AR9dVntSpKRghnlWQM0TbSxla3-Q',
             plan: 'standard'
         }
     ];
@@ -44,11 +44,11 @@ function searchDatabases(databases, identifier, isIdLookup, index = 0) {
     window[callbackName] = function(data) {
         delete window[callbackName];
         
-        if (data && data.status !== "error") {
-            // Successfully found in this database
+        if (data && data.status !== "error" && data.Name) {
+            // Successfully found in this database, stop searching
             handleProfileData(data, db.plan);
         } else {
-            // Try next database
+            // Not found in this database, try next one
             searchDatabases(databases, identifier, isIdLookup, index + 1);
         }
     };
@@ -159,9 +159,36 @@ function handleProfileData(data, planType) {
     }
 }
 
-// Social links rendering
 function renderSocialLinks(links) {
     if (!links || typeof links !== 'string') return '';
+
+    // Map of domains to their corresponding Font Awesome icons
+    const platformIcons = {
+        'facebook.com': 'fab fa-facebook',
+        'twitter.com': 'fab fa-twitter',
+        'instagram.com': 'fab fa-instagram',
+        'linkedin.com': 'fab fa-linkedin',
+        'youtube.com': 'fab fa-youtube',
+        'tiktok.com': 'fab fa-tiktok',
+        'pinterest.com': 'fab fa-pinterest',
+        'snapchat.com': 'fab fa-snapchat',
+        'reddit.com': 'fab fa-reddit',
+        'discord.com': 'fab fa-discord',
+        'twitch.tv': 'fab fa-twitch',
+        'github.com': 'fab fa-github',
+        'gitlab.com': 'fab fa-gitlab',
+        'medium.com': 'fab fa-medium',
+        'whatsapp.com': 'fab fa-whatsapp',
+        'telegram.org': 'fab fa-telegram',
+        'slack.com': 'fab fa-slack',
+        'vimeo.com': 'fab fa-vimeo',
+        'spotify.com': 'fab fa-spotify',
+        'apple.com': 'fab fa-apple',
+        'google.com': 'fab fa-google',
+        'amazon.com': 'fab fa-amazon',
+        'microsoft.com': 'fab fa-microsoft',
+        'paypal.com': 'fab fa-paypal'
+    };
 
     const validLinks = links.split(",")
         .map(link => {
@@ -169,14 +196,20 @@ function renderSocialLinks(links) {
             if (!link) return null;
             
             try {
+                // Ensure URL has protocol
                 if (!/^https?:\/\//i.test(link)) link = 'https://' + link;
                 const url = new URL(link);
+                const domain = url.hostname.replace(/^www\./, '');
                 
-                if (!/^([a-z0-9-]+\.)+[a-z]{2,}$/i.test(url.hostname)) return null;
+                // Check if domain is in our platform icons
+                const iconClass = Object.keys(platformIcons).find(key => 
+                    domain.includes(key)
+                ) ? platformIcons[Object.keys(platformIcons).find(key => domain.includes(key))] : 'fas fa-link';
                 
                 return {
                     href: url.href,
-                    display: url.hostname.replace(/^www\./, '')
+                    display: domain,
+                    icon: iconClass
                 };
             } catch (e) {
                 return null;
@@ -189,8 +222,9 @@ function renderSocialLinks(links) {
     return `
         <div class="social-links">
             ${validLinks.map(link => `
-                <a href="${escapeHtml(link.href)}" target="_blank" rel="noopener noreferrer">
-                    <i class="fas fa-link"></i> ${escapeHtml(link.display)}
+                <a href="${escapeHtml(link.href)}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 p-3 hover:bg-gray-700 rounded-lg transition-colors">
+                    <i class="${link.icon} text-lg"></i>
+                    <span>${escapeHtml(link.display)}</span>
                 </a>
             `).join('')}
         </div>
