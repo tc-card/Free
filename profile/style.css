@@ -3,7 +3,7 @@
     max-width: 600px;
     width: 100%;
 }
-h2{
+.card-container h2{
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
     background: rgba(17, 24, 39, 0.7);
     padding: 20px;

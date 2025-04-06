@@ -32,36 +32,40 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 
 // Enhanced database search with plan awareness
-function searchDatabases(databases, identifier, isIdLookup, index = 0) {
+async function searchDatabases(databases, identifier, isIdLookup, index = 0) {
     if (index >= databases.length) {
         showError("Profile not found in any database");
         return;
     }
 
     const db = databases[index];
-    const callbackName = `profileCallback_${db.plan}_${Date.now()}`;
     
-    window[callbackName] = function(data) {
-        delete window[callbackName];
-        
-        if (data && data.status !== "error" && data.Name) {
-            // Successfully found in this database, stop searching
-            handleProfileData(data, db.plan);
-        } else {
-            // Not found in this database, try next one
-            searchDatabases(databases, identifier, isIdLookup, index + 1);
-        }
-    };
-
     try {
         const param = isIdLookup ? 'id' : 'link';
-        const script = document.createElement("script");
-        script.src = `https://script.google.com/macros/s/${db.id}/exec?${param}=${encodeURIComponent(identifier)}&callback=${callbackName}`;
-        script.onerror = () => {
-            document.body.removeChild(script);
-            searchDatabases(databases, identifier, isIdLookup, index + 1);
-        };
-        document.body.appendChild(script);
+        const url = `https://script.google.com/macros/s/${db.id}/exec?${param}=${encodeURIComponent(identifier)}`;
+        
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        
+        // Debug log
+        console.log('Received data:', data);
+        
+        // If we have any data, pass it to handleProfileData immediately
+        if (data && typeof data === 'object') {
+            try {
+                await handleProfileData(data, db.plan);
+                return;
+            } catch (err) {
+                console.error('Error in handleProfileData:', err);
+                throw err;
+            }
+        }
+        
+        // Only continue to next database if no data received
+        searchDatabases(databases, identifier, isIdLookup, index + 1);
     } catch (error) {
         console.error("Database search error:", error);
         searchDatabases(databases, identifier, isIdLookup, index + 1);
@@ -118,12 +122,51 @@ function handleProfileData(data, planType) {
             const styles = {
                 corporateGradient: "linear-gradient(145deg, rgb(9, 9, 11), rgb(24, 24, 27), rgb(9, 9, 11))",
                 oceanGradient: "linear-gradient(145deg, rgb(2, 6, 23), rgb(15, 23, 42), rgb(2, 6, 23))",
+                minimal: { background: '#18181b' },
+                black: { background: '#09090b' },
+                navy: { background: '#020617' },
+                forest: { background: '#022c22' },
+                wine: { background: '#450a0a' },
+              
+                // Lighter color themes
+                clouds: { background: '#0ea5e9' },
+                Pink: { background: '#9b0055' },
+                SkyBlue: { background: '#2563eb' },
+                paleRed: { background: '#f00f4d' },
+              
+                // Professional Gradients
+                corporateGradient: { background: 'linear-gradient(145deg, rgb(9, 9, 11), rgb(24, 24, 27), rgb(9, 9, 11))' },
+                oceanGradient: { background: 'linear-gradient(145deg, rgb(2, 6, 23), rgb(15, 23, 42), rgb(2, 6, 23))' },
+                forestGradient: { background: 'linear-gradient(145deg, rgb(2, 44, 34), rgb(6, 78, 59), rgb(2, 44, 34))' },
+                burgundyGradient: { background: 'linear-gradient(145deg, rgb(69, 10, 10), rgb(127, 29, 29), rgb(69, 10, 10))' },
                 default: "url(https://tccards.tn/Assets/bg.png) center fixed"
             };
-            document.body.style.background = styles[data['Selected Style']] || styles.default;
+
+            document.body.style.background = styles[data['Selected Style']]?.background || styles.default;
             document.body.style.backgroundSize = "cover";
         }
-
+        const styles = {
+            corporateGradient: "linear-gradient(145deg, rgb(9, 9, 11), rgb(24, 24, 27), rgb(9, 9, 11))",
+            oceanGradient: "linear-gradient(145deg, rgb(2, 6, 23), rgb(15, 23, 42), rgb(2, 6, 23))",
+            minimal: { background: '#18181b' },
+            black: { background: '#09090b' },
+            navy: { background: '#020617' },
+            forest: { background: '#022c22' },
+            wine: { background: '#450a0a' },
+          
+            // Lighter color themes
+            clouds: { background: '#0ea5e9' },
+            Pink: { background: '#9b0055' },
+            SkyBlue: { background: '#2563eb' },
+            paleRed: { background: '#f00f4d' },
+          
+            // Professional Gradients
+            corporateGradient: { background: 'linear-gradient(145deg, rgb(9, 9, 11), rgb(24, 24, 27), rgb(9, 9, 11))' },
+            oceanGradient: { background: 'linear-gradient(145deg, rgb(2, 6, 23), rgb(15, 23, 42), rgb(2, 6, 23))' },
+            forestGradient: { background: 'linear-gradient(145deg, rgb(2, 44, 34), rgb(6, 78, 59), rgb(2, 44, 34))' },
+            burgundyGradient: { background: 'linear-gradient(145deg, rgb(69, 10, 10), rgb(127, 29, 29), rgb(69, 10, 10))' },
+            default: "url(https://tccards.tn/Assets/bg.png) center fixed"
+        };
         // Render the profile card
         container.innerHTML = `
             <div class="profile-container">
@@ -142,17 +185,18 @@ function handleProfileData(data, planType) {
                 
                 ${(profileData.email || profileData.phone || profileData.address) ? 
                     `<button class="contact-btn" onclick="showContactDetails(${escapeHtml(JSON.stringify({
+                        name: profileData.name,
+                        profilepic: profileData.profilePic,
                         email: profileData.email,
                         phone: profileData.phone,
-                        address: profileData.address
+                        address: profileData.address,
+                        style: styles[data['Selected Style']]?.background || styles.default
                     }))})">Get in Touch</button>` : ''}
                 
                 <footer>
                     <p>&copy; ${new Date().getFullYear()} Total Connect</p>
                 </footer>
                 
-                ${planType === 'free' ? 
-                    `<img src="https://tccards.tn/Assets/zfooter.gif" alt="Total Connect animation" class="mt-8">` : ''}
             </div>
         `;
         
@@ -160,10 +204,14 @@ function handleProfileData(data, planType) {
         if (typeof Swal !== 'undefined') {
             Swal.fire({
                 title: "Profile Loaded",
-                text: `Showing ${planType} plan profile`,
                 icon: "success",
-                timer: 2000,
-                showConfirmButton: false
+                timer: 1000,
+                showConfirmButton: false,
+                position: 'bottom',
+                toast: true,
+                width: '300px',
+                background: "#1a1a1a",
+                color: "white",
             });
         }
     } catch (error) {
@@ -244,25 +292,106 @@ function renderSocialLinks(links) {
     `;
 }
 
-window.showContactDetails = function(contact) {
-    if (typeof Swal !== 'undefined') {
-        Swal.fire({
-            title: "Contact Details",
-            html: `
-                ${contact.email ? `<p><strong>Email:</strong> ${escapeHtml(contact.email)}</p>` : ''}
-                ${contact.phone ? `<p><strong>Phone:</strong> ${escapeHtml(contact.phone)}</p>` : ''}
-                ${contact.address ? `<p><strong>Address:</strong> ${escapeHtml(contact.address)}</p>` : ''}
-            `,
-            icon: "info",
-            confirmButtonText: "Close",
-            background: "#1a1a1a",
-            color: "white",
-            confirmButtonColor: "#2563eb"
-        });
-    } else {
-        alert(`Contact Details:\nEmail: ${contact.email || 'N/A'}\nPhone: ${contact.phone || 'N/A'}\nAddress: ${contact.address || 'N/A'}`);
-    }
-};
+function showContactDetails(contact) {
+    const title = `
+        <div class="contact-header">
+            <img src="${escapeHtml(contact.profilepic)}" class="contact-avatar" alt="${escapeHtml(contact.name)}">
+            <h2>${escapeHtml(contact.name)}</h2>
+        </div>
+    `;
+
+    Swal.fire({
+        title: title,
+        html: `
+            ${contact.email ? `<p><strong>Email:</strong> ${escapeHtml(contact.email)}</p>` : ''}
+            ${contact.phone ? `<p><strong>Phone:</strong> ${escapeHtml(contact.phone)}</p>` : ''}
+            ${contact.address ? `<p><strong>Address:</strong> ${escapeHtml(contact.address)}</p>` : ''}
+        `,
+        confirmButtonText: "Save Contact",
+        confirmButtonColor: "#4a90e2",
+        background: typeof contact.style === 'object' ? contact.style?.background : contact.style || '#162949',
+        showCancelButton: true,
+        cancelButtonColor: "#ff4444",
+        customClass: {
+            popup: "swal-wide"
+        }
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                
+                if (isMobile) {
+                    const contactData = {
+                        name: contact.name || 'Contact',
+                        phone: contact.phone || '',
+                        email: contact.email || ''
+                    };
+
+                    if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+                        window.location.href = `contacts://add-contact?name=${encodeURIComponent(contactData.name)}&phone=${encodeURIComponent(contactData.phone)}&email=${encodeURIComponent(contactData.email)}`;
+                    } else if (/Android/i.test(navigator.userAgent)) {
+                        window.location.href = `intent://contacts/create#Intent;scheme=android-app;package=com.android.contacts;S.name=${encodeURIComponent(contactData.name)};S.phone=${encodeURIComponent(contactData.phone)};S.email=${encodeURIComponent(contactData.email)};end`;
+                    }
+                } else {
+                    const contactCard = `BEGIN:VCARD
+VERSION:3.0
+FN:${contact.name || 'Contact'}
+TEL:${contact.phone || ''}
+EMAIL:${contact.email || ''}
+ADR:${contact.address || ''}
+END:VCARD`;
+
+                    const blob = new Blob([contactCard], { type: 'text/vcard' });
+                    const url = window.URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `${contact.name}.vcf`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(url);
+                }
+
+                Swal.fire({
+                    title: 'Success!',
+                    text: isMobile ? 'Opening contacts app...' : 'Contact file downloaded successfully',
+                    icon: 'success',
+                    background: contact.style || '#162949',
+                    confirmButtonColor: "#4a90e2",
+                    timer: 2000,
+                    timerProgressBar: true
+                });
+            } catch (error) {
+                console.error('Error saving contact:', error);
+                const contactCard = `BEGIN:VCARD
+VERSION:3.0
+FN:${contact.name || 'Contact'}
+TEL:${contact.phone || ''}
+EMAIL:${contact.email || ''}
+ADR:${contact.address || ''}
+END:VCARD`;
+                
+                const blob = new Blob([contactCard], { type: 'text/vcard' });
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `${contact.name}.vcf`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+
+                Swal.fire({
+                    title: 'Contact Card Downloaded',
+                    text: 'Please import the downloaded file to your contacts app',
+                    icon: 'info',
+                    background: contact.style || '#162949',
+                    confirmButtonColor: "#4a90e2"
+                });
+            }
+        }
+    });
+}
 
 // XSS protection
 function escapeHtml(unsafe) {
