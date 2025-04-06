@@ -56,7 +56,7 @@ function fetchProfile(identifier, isIdLookup = false) {
 
     const script = document.createElement('script');
     const param = isIdLookup ? 'id' : 'link';
-    script.src = `https://script.google.com/macros/s/AKfycbyIszo8lC3xYgvAGIO6wJuOPY9tzOd-s0eH1l-X9ZHTMdyxU70Otlz7EPNV7CbmeuSWwQ/exec?${param}=${encodeURIComponent(identifier)}&callback=${callbackName}`;
+    script.src = `https://script.google.com/macros/s/AKfycbySmVtCmRIoBKZJoVZi9YLUIy4q0TsFLif6p0vZkSgt1QMSRE5be4OauPPu1bj-ep8CjQ/exec?${param}=${encodeURIComponent(identifier)}&callback=${callbackName}`;
     script.onerror = () => showError("Failed to load profile data");
     document.head.appendChild(script);
 }
