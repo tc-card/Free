@@ -18,7 +18,7 @@ document.addEventListener("DOMContentLoaded", function() {
     // Database configuration with plan types
     const databases = [
         {
-            id: 'AKfycbxVpxX2Dt79ZIfW6lyhPhCUaJ7QaJJUsdsdHUsoD4CgQ3AR9dVntSpKRghnlWQM0TbSxla3-Q',
+            id: 'AKfycbySmVtCmRIoBKZJoVZi9YLUIy4q0TsFLif6p0vZkSgt1QMSRE5be4OauPPu1bj-ep8CjQ',
             plan: 'free'
         },
         {
@@ -70,14 +70,27 @@ function searchDatabases(databases, identifier, isIdLookup, index = 0) {
 
 // Enhanced profile handler with plan awareness
 function handleProfileData(data, planType) {
-    document.querySelector('.loader').style.display = 'none';
+    const loader = document.querySelector('.loader');
+    if (loader) {
+        loader.style.display = 'none';
+    }
     
-    if (!data || data.status === "error") {
+    if (!data || typeof data !== 'object') {
+        showError("Invalid profile data received");
+        return;
+    }
+
+    if (data.status === "error") {
         showError(data?.message || "Profile data could not be loaded");
         return;
     }
     
-    if (data.Status && data.Status !== "Active") {
+    if (!data.Name) {
+        showError("Invalid profile data: Name is required");
+        return;
+    }
+    
+    if (data?.Status && data.Status !== "Active") {
         showError("This profile is currently inactive");
         return;
     }
