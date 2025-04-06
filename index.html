@@ -5,10 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Total Connect NFC</title>
     <script>
-        // Redirect to profile page if hash exists
-        if(window.location.hash) {
-            window.location.href = '/profile/index.html' + window.location.hash;
+        // Get the hash and remove the # symbol
+        const hash = window.location.hash.substring(1); 
+
+        if (hash) {
+            // Whitelist only safe characters: letters, numbers, hyphens, underscores
+            const cleanHash = hash.replace(/[^a-zA-Z0-9-_]/g, ''); 
+            
+            if (cleanHash) {
+                // Safe redirect with sanitized hash
+                window.location.href = `/profile/#${cleanHash}`;
+            } else {
+                // Empty/invalid hash → 404
+                window.location.href = '/404.html';
+            }
         } else {
+            // No hash → 404
             window.location.href = '/404.html';
         }
     </script>
