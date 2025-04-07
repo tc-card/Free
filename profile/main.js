@@ -16,13 +16,12 @@ document.addEventListener("DOMContentLoaded", function() {
     const identifier = isIdLookup ? hash.split('_')[1] : hash;
     
     // Database configuration with plan types
-    const databases = [
-        {
-            id: 'AKfycbyJU9jEA-aU74ryKfYH2_pUq6zVdlY-lZ5CZUR5M8cHbKuWmoJ1H_HlY2PZYv7CQ_U',
+    const databases = [{
+            id: 'AKfycbxU8axs4Xduqc84jj_utLsi-pCxSEyw9exEO7PuNo940qQ1bJ4-NxREnUgVhdzS9plb',
             plan: 'free'
         },
         {
-            id: 'AKfycbzAXr2EFu1JOFA5C35Bm1pBGh6SuDjrRKRPBI_U9QPVqcSzCdK-c5r8d2sy3QQh94UWUQ',
+            id: 'AKfycbzPzvvaPrbyqArBphqHNlNSEJEVIdKD0DZINT_c5308LXo9ELon3WK_5qpvjmZ4RyAfyQ',
             plan: 'standard'
         }
     ];
@@ -53,7 +52,13 @@ async function searchDatabases(databases, identifier, isIdLookup, index = 0) {
         // Debug log
         console.log('Received data:', data);
         
-        // If we have any data, pass it to handleProfileData immediately
+        // If data has status error, try next database
+        if (data && data.status === "error") {
+            searchDatabases(databases, identifier, isIdLookup, index + 1);
+            return;
+        }
+        
+        // If we have valid data, handle it
         if (data && typeof data === 'object') {
             try {
                 handleProfileData(data, db.plan);
@@ -62,10 +67,9 @@ async function searchDatabases(databases, identifier, isIdLookup, index = 0) {
                 console.error('Error in handleProfileData:', err);
                 searchDatabases(databases, identifier, isIdLookup, index + 1);
             }
+        } else {
+            searchDatabases(databases, identifier, isIdLookup, index + 1);
         }
-        
-        // Only continue to next database if no data received
-        searchDatabases(databases, identifier, isIdLookup, index + 1);
     } catch (error) {
         console.error("Database search error:", error);
         searchDatabases(databases, identifier, isIdLookup, index + 1);
@@ -78,7 +82,9 @@ function handleProfileData(data, planType) {
     if (loader) {
         loader.style.display = 'none';
     }
-    
+    // Open the data array received data.data to access the profile data
+    data = data.data || data;
+
     if (!data || typeof data !== 'object') {
         showError("Invalid profile data received");
         return;
@@ -238,6 +244,8 @@ function renderSocialLinks(links) {
         'twitch.tv': 'fab fa-twitch',
         'github.com': 'fab fa-github',
         'gitlab.com': 'fab fa-gitlab',
+        'discord.gg': 'fab fa-discord',
+        'bitly.com': 'fab fa-bitly',
         'medium.com': 'fab fa-medium',
         'whatsapp.com': 'fab fa-whatsapp',
         'telegram.org': 'fab fa-telegram',
