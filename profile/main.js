@@ -56,11 +56,11 @@ async function searchDatabases(databases, identifier, isIdLookup, index = 0) {
         // If we have any data, pass it to handleProfileData immediately
         if (data && typeof data === 'object') {
             try {
-                await handleProfileData(data, db.plan);
+                handleProfileData(data, db.plan);
                 return;
             } catch (err) {
                 console.error('Error in handleProfileData:', err);
-                throw err;
+                searchDatabases(databases, identifier, isIdLookup, index + 1);
             }
         }
         
