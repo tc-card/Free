@@ -18,13 +18,18 @@ document.addEventListener("DOMContentLoaded", function() {
     const identifier = isIdLookup ? hash.split('_')[1] : hash;
     
     // Database configuration with plan types
-    const databases = [{
-            id: 'AKfycbxU8axs4Xduqc84jj_utLsi-pCxSEyw9exEO7PuNo940qQ1bJ4-NxREnUgVhdzS9plb',
-            plan: 'free'
-        },
+    const databases = [
         {
             id: 'AKfycbzPzvvaPrbyqArBphqHNlNSEJEVIdKD0DZINT_c5308LXo9ELon3WK_5qpvjmZ4RyAfyQ',
             plan: 'standard'
+        },
+        {
+            id: 'AKfycbxvZvAIxLUJ_JKrW06ImzTKYOvm5fXy7NMv4RZNXeO9j9S82HBhWhHEqNkNhklRxh7N',
+            plan: 'basic'
+        },
+        {
+            id: 'AKfycbxU8axs4Xduqc84jj_utLsi-pCxSEyw9exEO7PuNo940qQ1bJ4-NxREnUgVhdzS9plb',
+            plan: 'free'
         }
     ];
 
@@ -309,7 +314,7 @@ function renderSocialLinks(links) {
 function showContactDetails(contact) {
     const title = `
         <div class="contact-header">
-            <img src="${escapeHtml(contact.profilepic)}" class="contact-avatar" alt="${escapeHtml(contact.name)}">
+            <img src="${escapeHtml(contact.profilepic)}" class="profile-picture" alt="${escapeHtml(contact.name)}">
             <h2>${escapeHtml(contact.name)}</h2>
         </div>
     `;
