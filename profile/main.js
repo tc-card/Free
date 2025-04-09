@@ -10,7 +10,9 @@ document.addEventListener("DOMContentLoaded", function() {
         showError("No profile link provided");
         return;
     }
-
+    // Change the url to https://p.tccards.tn/@"hash" without reloading just the appearance of the url
+    const newUrl = `https://p.tccards.tn/@${hash}`;
+    window.history.replaceState(null, null, newUrl);
     // Determine if it's an ID or link lookup
     const isIdLookup = hash.startsWith('id_');
     const identifier = isIdLookup ? hash.split('_')[1] : hash;
@@ -125,9 +127,12 @@ function handleProfileData(data, planType) {
 
         // Apply background style if available
         if (data['Selected Style']) {
+            const selectedStyle = data['Selected Style'];
+            
+            if (selectedStyle.startsWith('linear-gradient')) {
+            document.body.style.background = `${selectedStyle}`;
+            } else {
             const styles = {
-                corporateGradient: "linear-gradient(145deg, rgb(9, 9, 11), rgb(24, 24, 27), rgb(9, 9, 11))",
-                oceanGradient: "linear-gradient(145deg, rgb(2, 6, 23), rgb(15, 23, 42), rgb(2, 6, 23))",
                 minimal: { background: '#18181b' },
                 black: { background: '#09090b' },
                 navy: { background: '#020617' },
@@ -150,6 +155,7 @@ function handleProfileData(data, planType) {
 
             document.body.style.background = styles[data['Selected Style']]?.background || styles.default;
             document.body.style.backgroundSize = "cover";
+            }
         }
         const styles = {
             corporateGradient: "linear-gradient(145deg, rgb(9, 9, 11), rgb(24, 24, 27), rgb(9, 9, 11))",
