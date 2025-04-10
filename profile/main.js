@@ -312,23 +312,39 @@ function renderSocialLinks(links) {
 }
 
 function showContactDetails(contact) {
+    // Validate contact object
+    if (!contact || typeof contact !== 'object') {
+        console.error('Invalid contact data');
+        return;
+    }
+
+    // Create header with profile picture and name
     const title = `
         <div class="contact-header">
-            <img src="${escapeHtml(contact.profilepic)}" class="profile-picture" alt="${escapeHtml(contact.name)}">
-            <h2>${escapeHtml(contact.name)}</h2>
+            ${contact.profilepic ? `<img src="${escapeHtml(contact.profilepic)}" class="profile-picture" alt="${escapeHtml(contact.name || 'Contact')}">` : ''}
+            <h2>${escapeHtml(contact.name || 'Contact')}</h2>
         </div>
     `;
 
+    // Create HTML content for the modal
+    const htmlContent = `
+        ${contact.email ? `<p><strong>Email:</strong> ${escapeHtml(contact.email)}</p>` : ''}
+        ${contact.phone ? `<p><strong>Phone:</strong> ${escapeHtml(contact.phone)}</p>` : ''}
+        ${contact.address ? `<p><strong>Address:</strong> ${escapeHtml(contact.address)}</p>` : ''}
+    `;
+
+    // Determine background style
+    const background = (typeof contact.style === 'object' && contact.style?.background) ? 
+        contact.style.background : 
+        (contact.style || '#162949');
+
+    // Show the modal
     Swal.fire({
         title: title,
-        html: `
-            ${contact.email ? `<p><strong>Email:</strong> ${escapeHtml(contact.email)}</p>` : ''}
-            ${contact.phone ? `<p><strong>Phone:</strong> ${escapeHtml(contact.phone)}</p>` : ''}
-            ${contact.address ? `<p><strong>Address:</strong> ${escapeHtml(contact.address)}</p>` : ''}
-        `,
+        html: htmlContent,
         confirmButtonText: "Save Contact",
         confirmButtonColor: "#4a90e2",
-        background: typeof contact.style === 'object' ? contact.style?.background : contact.style || '#162949',
+        background: background,
         showCancelButton: true,
         cancelButtonColor: "#ff4444",
         customClass: {
@@ -336,82 +352,89 @@ function showContactDetails(contact) {
         }
     }).then(async (result) => {
         if (result.isConfirmed) {
-            try {
-                const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-                
-                if (isMobile) {
-                    const contactData = {
-                        name: contact.name || 'Contact',
-                        phone: contact.phone || '',
-                        email: contact.email || ''
-                    };
-
-                    if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-                        window.location.href = `contacts://add-contact?name=${encodeURIComponent(contactData.name)}&phone=${encodeURIComponent(contactData.phone)}&email=${encodeURIComponent(contactData.email)}`;
-                    } else if (/Android/i.test(navigator.userAgent)) {
-                        window.location.href = `intent://contacts/create#Intent;scheme=android-app;package=com.android.contacts;S.name=${encodeURIComponent(contactData.name)};S.phone=${encodeURIComponent(contactData.phone)};S.email=${encodeURIComponent(contactData.email)};end`;
-                    }
-                } else {
-                    const contactCard = `BEGIN:VCARD
-VERSION:3.0
-FN:${contact.name || 'Contact'}
-TEL:${contact.phone || ''}
-EMAIL:${contact.email || ''}
-ADR:${contact.address || ''}
-END:VCARD`;
-
-                    const blob = new Blob([contactCard], { type: 'text/vcard' });
-                    const url = window.URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = `${contact.name}.vcf`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    window.URL.revokeObjectURL(url);
-                }
-
-                Swal.fire({
-                    title: 'Success!',
-                    text: isMobile ? 'Opening contacts app...' : 'Contact file downloaded successfully',
-                    icon: 'success',
-                    background: contact.style || '#162949',
-                    confirmButtonColor: "#4a90e2",
-                    timer: 2000,
-                    timerProgressBar: true
-                });
-            } catch (error) {
-                console.error('Error saving contact:', error);
-                const contactCard = `BEGIN:VCARD
-VERSION:3.0
-FN:${contact.name || 'Contact'}
-TEL:${contact.phone || ''}
-EMAIL:${contact.email || ''}
-ADR:${contact.address || ''}
-END:VCARD`;
-                
-                const blob = new Blob([contactCard], { type: 'text/vcard' });
-                const url = window.URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = `${contact.name}.vcf`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                window.URL.revokeObjectURL(url);
-
-                Swal.fire({
-                    title: 'Contact Card Downloaded',
-                    text: 'Please import the downloaded file to your contacts app',
-                    icon: 'info',
-                    background: contact.style || '#162949',
-                    confirmButtonColor: "#4a90e2"
-                });
-            }
+            await handleContactSave(contact, background);
         }
     });
 }
 
+async function handleContactSave(contact, backgroundStyle) {
+    try {
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        const contactName = contact.name || 'Contact';
+        
+        if (isMobile) {
+            // Mobile device handling
+            const contactData = {
+                name: contactName,
+                phone: contact.phone || '',
+                email: contact.email || '',
+                address: contact.address || ''
+            };
+
+            if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+                // iOS devices
+                window.location.href = `contacts://add-contact?name=${encodeURIComponent(contactData.name)}&phone=${encodeURIComponent(contactData.phone)}&email=${encodeURIComponent(contactData.email)}`;
+            } else if (/Android/i.test(navigator.userAgent)) {
+                // Android devices
+                window.location.href = `intent://contacts/create#Intent;scheme=android-app;package=com.android.contacts;S.name=${encodeURIComponent(contactData.name)};S.phone=${encodeURIComponent(contactData.phone)};S.email=${encodeURIComponent(contactData.email)};end`;
+            }
+        } else {
+            // Desktop devices - create vCard
+            await downloadVCard(contact);
+        }
+
+        // Show success message
+        await Swal.fire({
+            title: 'Success!',
+            text: isMobile ? 'Opening contacts app...' : 'Contact file downloaded successfully',
+            icon: 'success',
+            background: backgroundStyle,
+            confirmButtonColor: "#4a90e2",
+            timer: 2000,
+            timerProgressBar: true
+        });
+    } catch (error) {
+        console.error('Error saving contact:', error);
+        // Fallback to vCard download if other methods fail
+        await downloadVCard(contact);
+        
+        await Swal.fire({
+            title: 'Contact Card Downloaded',
+            text: 'Please import the downloaded file to your contacts app',
+            icon: 'info',
+            background: backgroundStyle,
+            confirmButtonColor: "#4a90e2"
+        });
+    }
+}
+
+function downloadVCard(contact) {
+    return new Promise((resolve) => {
+        const contactName = contact.name || 'Contact';
+        const contactCard = `BEGIN:VCARD
+VERSION:3.0
+FN:${contactName}
+TEL:${contact.phone || ''}
+EMAIL:${contact.email || ''}
+ADR:${contact.address || ''}
+END:VCARD`;
+
+        const blob = new Blob([contactCard], { type: 'text/vcard' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${contactName}.vcf`;
+        document.body.appendChild(link);
+        link.click();
+        
+        // Clean up
+        setTimeout(() => {
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            resolve();
+        }, 100);
+    });
+}
 // XSS protection
 function escapeHtml(unsafe) {
     if (typeof unsafe !== 'string') return unsafe;
