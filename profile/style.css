@@ -180,3 +180,15 @@ footer {
 .contact-btn:hover {
     background-color: #1e40af;
 }
+
+.footer {
+    margin-top: auto;
+    padding-bottom: 20px;
+    padding-top: 15px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+    text-align: center;
+    position: relative;
+    bottom: 0;
+    width: 100%;
+}
