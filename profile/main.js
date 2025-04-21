@@ -22,10 +22,6 @@ document.addEventListener("DOMContentLoaded", function() {
         {
             id: 'AKfycbxU8axs4Xduqc84jj_utLsi-pCxSEyw9exEO7PuNo940qQ1bJ4-NxREnUgVhdzS9plb',
             plan: 'free'
-        },
-        {
-            id: 'AKfycbzPzvvaPrbyqArBphqHNlNSEJEVIdKD0DZINT_c5308LXo9ELon3WK_5qpvjmZ4RyAfyQ',
-            plan: 'standard'
         }
     ];
 
@@ -184,7 +180,7 @@ function handleProfileData(data, planType) {
         container.innerHTML = `
             <div class="profile-container">
             
-            <div class="share-icon" onclick="showShareOptions('${escapeHtml(data)}')">
+            <div class="share-icon top-right" onclick="showShareOptions('${escapeHtml(data)}')">
                 <i class="fas fa-share-alt"></i>
             </div>
             
