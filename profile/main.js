@@ -314,38 +314,54 @@ function renderSocialLinks(links) {
     `;
 }
 async function showContactDetails(contact) {
-    // Create contact details HTML
-    const contactHtml = `
-        <div class="contact-details">
-            <img src="${escapeHtml(contact.profilepic)}" class="profile-picture" alt="${escapeHtml(contact.name)}">
-            <h3>${escapeHtml(contact.name)}</h3>
-            ${contact.email ? `<p><i class="fas fa-envelope"></i> ${escapeHtml(contact.email)}</p>` : ''}
-            ${contact.phone ? `<p><i class="fas fa-phone"></i> ${escapeHtml(contact.phone)}</p>` : ''}
-            ${contact.address ? `<p><i class="fas fa-map-marker-alt"></i> ${escapeHtml(contact.address)}</p>` : ''}
-        </div>
-    `;
+    try {
+        // Create contact details HTML
+        const contactHtml = `
+            <div class="contact-details">
+                <img src="${escapeHtml(contact.profilepic)}" class="profile-picture" alt="${escapeHtml(contact.name)}">
+                <h3>${escapeHtml(contact.name)}</h3>
+                ${contact.email ? `<p><i class="fas fa-envelope"></i> ${escapeHtml(contact.email)}</p>` : ''}
+                ${contact.phone ? `<p><i class="fas fa-phone"></i> ${escapeHtml(contact.phone)}</p>` : ''}
+                ${contact.address ? `<p><i class="fas fa-map-marker-alt"></i> ${escapeHtml(contact.address)}</p>` : ''}
+            </div>
+        `;
 
-    // Show contact details with multiple save options
-    const { value: saveMethod } = await Swal.fire({
-        title: 'Save Contact',
-        html: contactHtml,
-        background: typeof contact.style === 'object' ? contact.style?.background : contact.style || '#162949',
-        showDenyButton: true,
-        showCancelButton: true,
-        confirmButtonText: 'Save to Device',
-        denyButtonText: 'Copy Details',
-        cancelButtonText: 'Cancel',
-        color: '#fff',
-        focusConfirm: false,
-        footer: '<small>Choose how you want to save this contact</small>'
-    });
+        // Show contact details with multiple save options
+        const { value: saveMethod, dismiss } = await Swal.fire({
+            title: 'Save Contact',
+            html: contactHtml,
+            background: typeof contact.style === 'object' ? contact.style?.background : contact.style || '#162949',
+            showDenyButton: true,
+            showCancelButton: true,
+            confirmButtonText: 'Save to Device',
+            denyButtonText: 'Copy Details',
+            cancelButtonText: 'Cancel',
+            color: '#fff',
+            focusConfirm: false,
+            allowOutsideClick: false,
+            allowEscapeKey: true,
+            footer: '<small>Choose how you want to save this contact</small>',
+            preConfirm: () => {
+                Swal.showLoading();
+            }
+        });
 
-    if (saveMethod === 'confirm') {
-        // Save to device contacts
-        await saveToDeviceContacts(contact);
-    } else if (saveMethod === 'deny') {
-        // Copy contact details to clipboard
-        await copyContactDetails(contact);
+        // Handle the user's choice
+        if (saveMethod === 'confirm') {
+            await saveToDeviceContacts(contact);
+        } else if (saveMethod === 'deny') {
+            await copyContactDetails(contact);
+        } else if (dismiss === Swal.DismissReason.cancel) {
+            return; // User clicked cancel
+        }
+
+    } catch (error) {
+        console.error('Error in showContactDetails:', error);
+        Swal.fire({
+            title: 'Error',
+            text: 'Something went wrong. Please try again.',
+            icon: 'error'
+        });
     }
 }
 
@@ -353,6 +369,12 @@ async function saveToDeviceContacts(contact) {
     try {
         // Try Web Share API first (mobile browsers)
         if (navigator.share) {
+            await Swal.fire({
+                title: 'Opening Share Dialog...',
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
+            
             await navigator.share({
                 title: `Save ${contact.name}`,
                 text: `Contact details for ${contact.name}`,
@@ -371,22 +393,33 @@ async function saveToDeviceContacts(contact) {
                 address: contact.address ? [{ address: contact.address }] : undefined
             };
             
-            await navigator.contacts.select(props, { multiple: false })
-                .then(contacts => {
-                    // Contact selected, but we can't actually save directly
-                    // Fall back to vCard download
-                    downloadVCard(contact);
+            await Swal.fire({
+                title: 'Preparing Contacts...',
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
+            
+            const contacts = await navigator.contacts.select(props, { multiple: false });
+            if (contacts.length > 0) {
+                Swal.fire({
+                    title: 'Contact Saved',
+                    text: 'The contact has been added to your device',
+                    icon: 'success',
+                    timer: 2000
                 });
-            return;
+                return;
+            }
         }
 
         // Fallback to vCard download
-        downloadVCard(contact);
+        await downloadVCard(contact);
         
     } catch (error) {
         console.error('Error saving contact:', error);
-        // Fallback to vCard download if other methods fail
-        downloadVCard(contact);
+        if (error.name !== 'AbortError') {
+            // Fallback to vCard download if other methods fail
+            await downloadVCard(contact);
+        }
     }
 }
 
@@ -402,35 +435,42 @@ PHOTO;VALUE=URI:${contact.profilepic || ''}
 END:VCARD`;
 }
 
-function downloadVCard(contact) {
-    const vcard = generateContactVCard(contact);
-    const blob = new Blob([vcard], { type: 'text/vcard' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${contact.name || 'contact'}.vcf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
-    Swal.fire({
-        title: 'Contact Downloaded',
-        text: 'The contact file has been downloaded. Import it to your contacts app.',
-        icon: 'success',
-        timer: 3000
-    });
+async function downloadVCard(contact) {
+    try {
+        const vcard = generateContactVCard(contact);
+        const blob = new Blob([vcard], { type: 'text/vcard' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${contact.name || 'contact'}.vcf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        await Swal.fire({
+            title: 'Contact Downloaded',
+            text: 'The contact file has been downloaded. Import it to your contacts app.',
+            icon: 'success',
+            timer: 3000,
+            showConfirmButton: false
+        });
+    } catch (error) {
+        console.error('Error downloading vCard:', error);
+        throw error;
+    }
 }
 
 async function copyContactDetails(contact) {
-    let contactText = `${contact.name}\n`;
-    if (contact.email) contactText += `Email: ${contact.email}\n`;
-    if (contact.phone) contactText += `Phone: ${contact.phone}\n`;
-    if (contact.address) contactText += `Address: ${contact.address}\n`;
-    
     try {
+        let contactText = `${contact.name}\n`;
+        if (contact.email) contactText += `Email: ${contact.email}\n`;
+        if (contact.phone) contactText += `Phone: ${contact.phone}\n`;
+        if (contact.address) contactText += `Address: ${contact.address}\n`;
+        
         await navigator.clipboard.writeText(contactText);
-        Swal.fire({
+        
+        await Swal.fire({
             title: 'Copied!',
             text: 'Contact details copied to clipboard',
             icon: 'success',
@@ -443,7 +483,7 @@ async function copyContactDetails(contact) {
         });
     } catch (error) {
         console.error('Failed to copy:', error);
-        Swal.fire({
+        await Swal.fire({
             title: 'Error',
             text: 'Failed to copy contact details',
             icon: 'error'
@@ -478,10 +518,9 @@ function showError(message) {
     if (existingLoader) existingLoader.remove();
 }
 
-function showShareOptions(userLink) {
+function showShareOptions(data) {
     // Generate the share link
-    const hash = window.location.hash.substring(1);
-    const shareLink = `https://p.tccards.tn/@${hash}`;
+    link = `https://tccards.tn/@${data.Link}`;
     
     // Generate a profile image with initials as fallback
     const profileImage = document.querySelector('.profile-picture')?.src || 
@@ -497,11 +536,11 @@ function showShareOptions(userLink) {
                     ${typeof profileImage === 'string' ? 
                         `<img src="${profileImage}" class="tc-profile-pic" alt="Profile">` : 
                         profileImage}
-                    <h3 class="tc-username">@${hash}</h3>
+                    <h3 class="tc-username">@${data.Link}</h3>
                 </div>
                 
                 <div class="tc-share-link">
-                    <input type="text" value="${shareLink}" id="tc-share-link-input" readonly>
+                    <input type="text" value="${link}" id="tc-share-link-input" readonly>
                     <button class="tc-copy-btn" onclick="copyShareLink()">
                         <i class="fas fa-copy"></i> 
                     </button>
