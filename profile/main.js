@@ -188,6 +188,8 @@ function handleProfileData(data, planType) {
         // Render the profile card
         container.innerHTML = `
             <div class="profile-container">
+            // tree dots top right activating share
+            <div class="share-icon" onclick="showShareOptions('${escapeHtml(data.link || identifier)}')">
                 ${planType === 'standard' && profileData.bgImage ? 
                     `<div class="profile-banner" style="background-image: url('${escapeHtml(profileData.bgImage)}')"></div>` : ''}
                 
@@ -223,15 +225,12 @@ function handleProfileData(data, planType) {
         // Show success notification
         if (typeof Swal !== 'undefined') {
             Swal.fire({
-                title: "Profile Loaded",
                 icon: "success",
                 timer: 1000,
                 showConfirmButton: false,
                 position: 'bottom',
                 toast: true,
-                width: '300px',
                 background: "#1a1a1a",
-                color: "white",
             });
         }
     } catch (error) {
@@ -262,6 +261,13 @@ function renderSocialLinks(links) {
         'bitly.com': 'fab fa-bitly',
         'medium.com': 'fab fa-medium',
         'whatsapp.com': 'fab fa-whatsapp',
+        'wa.me': 'fab fa-whatsapp',
+        'vercel.com': 'fab fa-vercel',
+        'netlify.com': 'fab fa-netlify',
+        'dribbble.com': 'fab fa-dribbble',
+        'behance.net': 'fab fa-behance',
+        'flickr.com': 'fab fa-flickr',
+        'tumblr.com': 'fab fa-tumblr',
         'telegram.org': 'fab fa-telegram',
         'slack.com': 'fab fa-slack',
         'vimeo.com': 'fab fa-vimeo',
@@ -313,109 +319,146 @@ function renderSocialLinks(links) {
         </div>
     `;
 }
-
-function showContactDetails(contact) {
-    const title = `
-        <div class="contact-header">
+async function showContactDetails(contact) {
+    // Create contact details HTML
+    const contactHtml = `
+        <div class="contact-details">
             <img src="${escapeHtml(contact.profilepic)}" class="profile-picture" alt="${escapeHtml(contact.name)}">
-            <h2>${escapeHtml(contact.name)}</h2>
+            <h3>${escapeHtml(contact.name)}</h3>
+            ${contact.email ? `<p><i class="fas fa-envelope"></i> ${escapeHtml(contact.email)}</p>` : ''}
+            ${contact.phone ? `<p><i class="fas fa-phone"></i> ${escapeHtml(contact.phone)}</p>` : ''}
+            ${contact.address ? `<p><i class="fas fa-map-marker-alt"></i> ${escapeHtml(contact.address)}</p>` : ''}
         </div>
     `;
 
-    Swal.fire({
-        title: title,
-        html: `
-            ${contact.email ? `<p><strong>Email:</strong> ${escapeHtml(contact.email)}</p>` : ''}
-            ${contact.phone ? `<p><strong>Phone:</strong> ${escapeHtml(contact.phone)}</p>` : ''}
-            ${contact.address ? `<p><strong>Address:</strong> ${escapeHtml(contact.address)}</p>` : ''}
-        `,
-        confirmButtonText: "Save Contact",
-        confirmButtonColor: "#4a90e2",
+    // Show contact details with multiple save options
+    const { value: saveMethod } = await Swal.fire({
+        title: 'Save Contact',
+        html: contactHtml,
         background: typeof contact.style === 'object' ? contact.style?.background : contact.style || '#162949',
+        showDenyButton: true,
         showCancelButton: true,
         confirmButtonText: 'Save to Device',
         denyButtonText: 'Copy Details',
         cancelButtonText: 'Cancel',
         customClass: {
-            popup: "swal-wide"
-        }
-    }).then(async (result) => {
-        if (result.isConfirmed) {
-            try {
-                const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-                
-                if (isMobile) {
-                    const contactData = {
-                        name: contact.name || 'Contact',
-                        phone: contact.phone || '',
-                        email: contact.email || ''
-                    };
+            popup: 'swal-wide'
+        },
+        focusConfirm: false,
+        footer: '<small>Choose how you want to save this contact</small>'
+    });
 
-                    if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-                        window.location.href = `contacts://add-contact?name=${encodeURIComponent(contactData.name)}&phone=${encodeURIComponent(contactData.phone)}&email=${encodeURIComponent(contactData.email)}`;
-                    } else if (/Android/i.test(navigator.userAgent)) {
-                        window.location.href = `intent://contacts/create#Intent;scheme=android-app;package=com.android.contacts;S.name=${encodeURIComponent(contactData.name)};S.phone=${encodeURIComponent(contactData.phone)};S.email=${encodeURIComponent(contactData.email)};end`;
-                    }
-                } else {
-                    const contactCard = `BEGIN:VCARD
+    if (saveMethod === 'confirm') {
+        // Save to device contacts
+        await saveToDeviceContacts(contact);
+    } else if (saveMethod === 'deny') {
+        // Copy contact details to clipboard
+        await copyContactDetails(contact);
+    }
+}
+
+async function saveToDeviceContacts(contact) {
+    try {
+        // Try Web Share API first (mobile browsers)
+        if (navigator.share) {
+            await navigator.share({
+                title: `Save ${contact.name}`,
+                text: `Contact details for ${contact.name}`,
+                url: generateContactVCard(contact)
+            });
+            return;
+        }
+
+        // Try Contacts API (experimental)
+        if ('contacts' in navigator && 'ContactsManager' in window) {
+            const props = ['name', 'email', 'tel', 'address'];
+            const contactData = {
+                name: [contact.name],
+                email: contact.email ? [{ address: contact.email }] : undefined,
+                tel: contact.phone ? [{ number: contact.phone }] : undefined,
+                address: contact.address ? [{ address: contact.address }] : undefined
+            };
+            
+            await navigator.contacts.select(props, { multiple: false })
+                .then(contacts => {
+                    // Contact selected, but we can't actually save directly
+                    // Fall back to vCard download
+                    downloadVCard(contact);
+                });
+            return;
+        }
+
+        // Fallback to vCard download
+        downloadVCard(contact);
+        
+    } catch (error) {
+        console.error('Error saving contact:', error);
+        // Fallback to vCard download if other methods fail
+        downloadVCard(contact);
+    }
+}
+
+function generateContactVCard(contact) {
+    return `BEGIN:VCARD
 VERSION:3.0
 FN:${contact.name || 'Contact'}
-TEL:${contact.phone || ''}
-EMAIL:${contact.email || ''}
-ADR:${contact.address || ''}
+N:;${contact.name || 'Contact'};;;
+${contact.email ? `EMAIL:${contact.email}\n` : ''}
+${contact.phone ? `TEL;TYPE=CELL:${contact.phone}\n` : ''}
+${contact.address ? `ADR:;;${contact.address};;;;\n` : ''}
+PHOTO;VALUE=URI:${contact.profilepic || ''}
 END:VCARD`;
+}
 
-                    const blob = new Blob([contactCard], { type: 'text/vcard' });
-                    const url = window.URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = `${contact.name}.vcf`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    window.URL.revokeObjectURL(url);
-                }
-
-                Swal.fire({
-                    title: 'Success!',
-                    text: isMobile ? 'Opening contacts app...' : 'Contact file downloaded successfully',
-                    icon: 'success',
-                    background: contact.style || '#162949',
-                    confirmButtonColor: "#4a90e2",
-                    timer: 2000,
-                    timerProgressBar: true
-                });
-            } catch (error) {
-                console.error('Error saving contact:', error);
-                const contactCard = `BEGIN:VCARD
-VERSION:3.0
-FN:${contact.name || 'Contact'}
-TEL:${contact.phone || ''}
-EMAIL:${contact.email || ''}
-ADR:${contact.address || ''}
-END:VCARD`;
-                
-                const blob = new Blob([contactCard], { type: 'text/vcard' });
-                const url = window.URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = `${contact.name}.vcf`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                window.URL.revokeObjectURL(url);
-
-                Swal.fire({
-                    title: 'Contact Card Downloaded',
-                    text: 'Please import the downloaded file to your contacts app',
-                    icon: 'info',
-                    background: contact.style || '#162949',
-                    confirmButtonColor: "#4a90e2"
-                });
-            }
-        }
+function downloadVCard(contact) {
+    const vcard = generateContactVCard(contact);
+    const blob = new Blob([vcard], { type: 'text/vcard' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${contact.name || 'contact'}.vcf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    Swal.fire({
+        title: 'Contact Downloaded',
+        text: 'The contact file has been downloaded. Import it to your contacts app.',
+        icon: 'success',
+        timer: 3000
     });
 }
+
+async function copyContactDetails(contact) {
+    let contactText = `${contact.name}\n`;
+    if (contact.email) contactText += `Email: ${contact.email}\n`;
+    if (contact.phone) contactText += `Phone: ${contact.phone}\n`;
+    if (contact.address) contactText += `Address: ${contact.address}\n`;
+    
+    try {
+        await navigator.clipboard.writeText(contactText);
+        Swal.fire({
+            title: 'Copied!',
+            text: 'Contact details copied to clipboard',
+            icon: 'success',
+            timer: 1000,
+            showConfirmButton: false,
+            position: 'bottom',
+            toast: true,
+            width: '300px',
+            background: "#1a1a1a",
+        });
+    } catch (error) {
+        console.error('Failed to copy:', error);
+        Swal.fire({
+            title: 'Error',
+            text: 'Failed to copy contact details',
+            icon: 'error'
+        });
+    }
+}
+
 // XSS protection
 function escapeHtml(unsafe) {
     if (typeof unsafe !== 'string') return unsafe;
@@ -441,4 +484,114 @@ function showError(message) {
     document.body.classList.remove('loading');
     const existingLoader = document.querySelector('.loader');
     if (existingLoader) existingLoader.remove();
+}
+function showShareOptions(userLink) {
+    const shareLink = `https://p.tccards.tn/@${userLink}`;
+    
+    // Generate a profile image with initials as fallback
+    const profileImage = document.querySelector('.profile-picture')?.src || 
+        `<div class="avatar-fallback" style="background-color: ${stringToColor(document.querySelector('h2')?.textContent || 'User')}">
+            ${getInitials(document.querySelector('h2')?.textContent || 'User')}
+        </div>`;
+
+    Swal.fire({
+        title: 'Share Profile',
+        html: `
+            <div class="tc-share-container">
+                <div class="tc-profile-header">
+                    ${typeof profileImage === 'string' ? 
+                        `<img src="${profileImage}" class="tc-profile-pic" alt="Profile">` : 
+                        profileImage}
+                    <h3 class="tc-username">@${userLink}</h3>
+                </div>
+                
+                <div class="tc-share-link">
+                    <input type="text" value="${shareLink}" id="tc-share-link-input" readonly>
+                    <button class="tc-copy-btn" onclick="copyShareLink()">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                </div>
+                
+                <div class="tc-social-share">
+                    <button class="tc-social-btn facebook" onclick="shareTo('facebook')">
+                        <i class="fab fa-facebook-f"></i>
+                    </button>
+                    <button class="tc-social-btn whatsapp" onclick="shareTo('whatsapp')">
+                        <i class="fab fa-whatsapp"></i>
+                    </button>
+                    <button class="tc-social-btn linkedin" onclick="shareTo('linkedin')">
+                        <i class="fab fa-linkedin-in"></i>
+                    </button>
+                    <button class="tc-social-btn messenger" onclick="shareTo('messenger')">
+                        <i class="fab fa-facebook-messenger"></i>
+                    </button>
+                    <button class="tc-social-btn snapchat" onclick="shareTo('snapchat')">
+                        <i class="fab fa-snapchat-ghost"></i>
+                    </button>
+                </div>
+                
+                <div class="tc-signup-cta">
+                    <p>Create your own digital card with TC Cards</p>
+                    <button class="tc-signup-btn" onclick="window.location.href='https://tccards.tn/plan/free'">
+                        Sign up free
+                    </button>
+                </div>
+            </div>
+        `,
+        showConfirmButton: false,
+        showCloseButton: true,
+        width: '90%',
+        maxWidth: '500px',
+        background: '#ffffff',
+        customClass: {
+            popup: 'tc-share-popup',
+            closeButton: 'tc-close-btn'
+        },
+        footer: `
+            <div class="tc-footer-links">
+                <a href="/report" class="tc-footer-link">Report Profile</a>
+                <a href="/privacy" class="tc-footer-link">Privacy Notice</a>
+            </div>
+        `
+    });
+}
+
+// Add these helper functions
+function copyShareLink() {
+    const input = document.getElementById('tc-share-link-input');
+    input.select();
+    document.execCommand('copy');
+    Swal.fire({
+        title: 'Copied!',
+        text: 'Link copied to clipboard',
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false
+    });
+}
+
+function shareTo(platform) {
+    const shareLink = document.getElementById('tc-share-link-input').value;
+    const shareText = `Check out my TC Card: ${shareLink}`;
+    
+    let url = '';
+    switch(platform) {
+        case 'facebook':
+            url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareLink)}`;
+            break;
+        case 'whatsapp':
+            url = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+            break;
+        case 'linkedin':
+            url = `https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(shareLink)}`;
+            break;
+        case 'messenger':
+            url = `fb-messenger://share/?link=${encodeURIComponent(shareLink)}`;
+            break;
+        case 'snapchat':
+            url = `https://www.snapchat.com/scan?attachmentUrl=${encodeURIComponent(shareLink)}`;
+            break;
+    }
+    
+    window.open(url, '_blank', 'noopener,noreferrer');
 }
