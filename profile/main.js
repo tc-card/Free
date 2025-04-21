@@ -19,19 +19,14 @@ document.addEventListener("DOMContentLoaded", function() {
     
     // Database configuration with plan types
     const databases = [
-        
-        // {
-        //     id: 'AKfycbxvZvAIxLUJ_JKrW06ImzTKYOvm5fXy7NMv4RZNXeO9j9S82HBhWhHEqNkNhklRxh7N',
-        //     plan: 'basic'
-        // },
         {
             id: 'AKfycbxU8axs4Xduqc84jj_utLsi-pCxSEyw9exEO7PuNo940qQ1bJ4-NxREnUgVhdzS9plb',
             plan: 'free'
         },
         {
-                id: 'AKfycbzPzvvaPrbyqArBphqHNlNSEJEVIdKD0DZINT_c5308LXo9ELon3WK_5qpvjmZ4RyAfyQ',
-                plan: 'standard'
-        },
+            id: 'AKfycbzPzvvaPrbyqArBphqHNlNSEJEVIdKD0DZINT_c5308LXo9ELon3WK_5qpvjmZ4RyAfyQ',
+            plan: 'standard'
+        }
     ];
 
     // Start searching databases
