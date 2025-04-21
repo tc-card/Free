@@ -183,8 +183,11 @@ function handleProfileData(data, planType) {
         // Render the profile card
         container.innerHTML = `
             <div class="profile-container">
-            // tree dots top right activating share
-            <div class="share-icon" onclick="showShareOptions('${escapeHtml(data.link || identifier)}')">
+            
+            <div class="share-icon" onclick="showShareOptions('${escapeHtml(data)}')">
+                <i class="fas fa-share-alt"></i>
+            </div>
+            
                 ${planType === 'standard' && profileData.bgImage ? 
                     `<div class="profile-banner" style="background-image: url('${escapeHtml(profileData.bgImage)}')"></div>` : ''}
                 
@@ -480,6 +483,7 @@ function showError(message) {
     const existingLoader = document.querySelector('.loader');
     if (existingLoader) existingLoader.remove();
 }
+
 function showShareOptions(userLink) {
     const shareLink = `https://p.tccards.tn/@${userLink}`;
     
