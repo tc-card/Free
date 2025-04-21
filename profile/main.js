@@ -335,9 +335,7 @@ async function showContactDetails(contact) {
         confirmButtonText: 'Save to Device',
         denyButtonText: 'Copy Details',
         cancelButtonText: 'Cancel',
-        customClass: {
-            popup: 'swal-wide'
-        },
+        color: '#fff',
         focusConfirm: false,
         footer: '<small>Choose how you want to save this contact</small>'
     });
@@ -481,7 +479,9 @@ function showError(message) {
 }
 
 function showShareOptions(userLink) {
-    const shareLink = `https://p.tccards.tn/@${userLink}`;
+    // Generate the share link
+    const hash = window.location.hash.substring(1);
+    const shareLink = `https://p.tccards.tn/@${hash}`;
     
     // Generate a profile image with initials as fallback
     const profileImage = document.querySelector('.profile-picture')?.src || 
@@ -497,13 +497,13 @@ function showShareOptions(userLink) {
                     ${typeof profileImage === 'string' ? 
                         `<img src="${profileImage}" class="tc-profile-pic" alt="Profile">` : 
                         profileImage}
-                    <h3 class="tc-username">@${userLink}</h3>
+                    <h3 class="tc-username">@${hash}</h3>
                 </div>
                 
                 <div class="tc-share-link">
                     <input type="text" value="${shareLink}" id="tc-share-link-input" readonly>
                     <button class="tc-copy-btn" onclick="copyShareLink()">
-                        <i class="fas fa-copy"></i> Copy
+                        <i class="fas fa-copy"></i> 
                     </button>
                 </div>
                 
@@ -535,8 +535,8 @@ function showShareOptions(userLink) {
         `,
         showConfirmButton: false,
         showCloseButton: true,
+        maxWidth: '600px',
         width: '90%',
-        maxWidth: '500px',
         background: '#ffffff',
         customClass: {
             popup: 'tc-share-popup',

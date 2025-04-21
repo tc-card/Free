@@ -38,8 +38,6 @@ body {
     box-sizing: border-box;
     animation: rotation 1s linear infinite;
     position: fixed;
-    bottom: 2rem;
-    transform: translateX(-50%);
 }
 
 @keyframes rotation {
@@ -195,6 +193,7 @@ footer {
 .tc-share-popup {
     border-radius: 12px !important;
     font-family: 'Segoe UI', Roboto, sans-serif;
+    max-width: 600px !important;
 }
 
 .tc-share-container {
@@ -348,4 +347,14 @@ footer {
 .tc-close-btn {
     color: #999 !important;
     font-size: 24px !important;
+}
+.tc-close-btn:hover {
+    color: #666 !important;
+}
+.top-right{
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
 }
