@@ -112,6 +112,7 @@ function handleProfileData(data, planType) {
         // Safe data access with fallbacks
         const profileData = {
             name: data.Name || 'User',
+            link: data.Link || 'tccards',
             tagline: data.Tagline || '',
             profilePic: data['Profile Picture URL'] || 'https://tccards.tn/Assets/default.png',
             bgImage: data['Background Image URL'] || '',
@@ -178,9 +179,9 @@ function handleProfileData(data, planType) {
         };
         // Render the profile card
         container.innerHTML = `
+        <center>
             <div class="profile-container">
-            
-            <div class="share-icon top-right" onclick="showShareOptions('${escapeHtml(data)}')">
+            <div class="share-icon" onclick="showShareOptions('${escapeHtml(data.link || identifier)}')">
                 <i class="fas fa-share-alt"></i>
             </div>
             
@@ -208,12 +209,12 @@ function handleProfileData(data, planType) {
                     }))})">Get in Touch</button>` : ''}
                 
 
-            </div>
             <footer class="footer">
                 <p>Powered by &copy; Total Connect ${new Date().getFullYear()}  </p>
                 <p><a href="https://tccards.tn/plan/free" target="_blank">Get Your Free Card</a></p>
             </footer>
-                
+            </div>
+        </center>
         `;
         
         // Show success notification
@@ -518,10 +519,9 @@ function showError(message) {
     if (existingLoader) existingLoader.remove();
 }
 
-function showShareOptions(data) {
-    // Generate the share link
-    link = `https://tccards.tn/@${data.Link}`;
+function showShareOptions(link) {
     
+    username = `https://tccards.tn/@${link}`;
     // Generate a profile image with initials as fallback
     const profileImage = document.querySelector('.profile-picture')?.src || 
         `<div class="avatar-fallback" style="background-color: ${stringToColor(document.querySelector('h2')?.textContent || 'User')}">
@@ -536,11 +536,11 @@ function showShareOptions(data) {
                     ${typeof profileImage === 'string' ? 
                         `<img src="${profileImage}" class="tc-profile-pic" alt="Profile">` : 
                         profileImage}
-                    <h3 class="tc-username">@${data.Link}</h3>
+                    <h3 class="tc-username">@${link}</h3>
                 </div>
                 
                 <div class="tc-share-link">
-                    <input type="text" value="${link}" id="tc-share-link-input" readonly>
+                    <input type="text" value="${username}" id="tc-share-link-input" readonly>
                     <button class="tc-copy-btn" onclick="copyShareLink()">
                         <i class="fas fa-copy"></i> 
                     </button>
