@@ -181,7 +181,7 @@ function handleProfileData(data, planType) {
         container.innerHTML = `
         <center>
             <div class="profile-container">
-            <div class="share-icon" onclick="showShareOptions('${escapeHtml(data.link || identifier)}')">
+            <div class="share-icon" onclick="showShareOptions('${escapeHtml(data.link)}')">
                 <i class="fas fa-share-alt"></i>
             </div>
             
