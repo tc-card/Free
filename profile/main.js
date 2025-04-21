@@ -181,7 +181,7 @@ function handleProfileData(data, planType) {
         container.innerHTML = `
         <center>
             <div class="profile-container">
-            <div class="share-icon" onclick="showShareOptions('${escapeHtml(data.link)}')">
+            <div class="top-right" onclick="showShareOptions('${escapeHtml(profileData.link)}')">
                 <i class="fas fa-share-alt"></i>
             </div>
             
@@ -341,20 +341,14 @@ async function showContactDetails(contact) {
             focusConfirm: false,
             allowOutsideClick: false,
             allowEscapeKey: true,
-            footer: '<small>Choose how you want to save this contact</small>',
-            preConfirm: () => {
-                Swal.showLoading();
+            footer: '<small>Choose how you want to save this contact</small>'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                await saveToDeviceContacts(contact);
+            } else if (result.isDenied) {
+                await copyContactDetails(contact);
             }
         });
-
-        // Handle the user's choice
-        if (saveMethod === 'confirm') {
-            await saveToDeviceContacts(contact);
-        } else if (saveMethod === 'deny') {
-            await copyContactDetails(contact);
-        } else if (dismiss === Swal.DismissReason.cancel) {
-            return; // User clicked cancel
-        }
 
     } catch (error) {
         console.error('Error in showContactDetails:', error);
