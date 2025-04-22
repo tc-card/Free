@@ -328,7 +328,7 @@ async function showContactDetails(contact) {
         `;
 
         // Show contact details with multiple save options
-        const { value: saveMethod, dismiss } = await Swal.fire({
+        const { value: saveMethod, isDismissed } = await Swal.fire({
             title: 'Save Contact',
             html: contactHtml,
             background: typeof contact.style === 'object' ? contact.style?.background : contact.style || '#162949',
@@ -341,14 +341,25 @@ async function showContactDetails(contact) {
             focusConfirm: false,
             allowOutsideClick: false,
             allowEscapeKey: true,
-            footer: '<small>Choose how you want to save this contact</small>'
-        }).then(async (result) => {
-            if (result.isConfirmed) {
-                await saveToDeviceContacts(contact);
-            } else if (result.isDenied) {
-                await copyContactDetails(contact);
+            footer: '<small>Choose how you want to save this contact</small>',
+            showLoaderOnConfirm: true,
+            preConfirm: () => {
+                return new Promise((resolve) => {
+                    // This gets resolved in the button handlers
+                    window.resolveSwalPromise = resolve;
+                });
             }
         });
+
+        // Handle the user's choice
+        if (saveMethod === 'confirm') {
+            await handleSaveContact(contact);
+        } else if (saveMethod === 'deny') {
+            await handleCopyContact(contact);
+        }
+        
+        // If dismissed (cancel or close button), just return
+        return;
 
     } catch (error) {
         console.error('Error in showContactDetails:', error);
@@ -360,16 +371,13 @@ async function showContactDetails(contact) {
     }
 }
 
-async function saveToDeviceContacts(contact) {
+async function handleSaveContact(contact) {
     try {
+        // Close the original dialog
+        Swal.close();
+        
         // Try Web Share API first (mobile browsers)
         if (navigator.share) {
-            await Swal.fire({
-                title: 'Opening Share Dialog...',
-                allowOutsideClick: false,
-                didOpen: () => Swal.showLoading()
-            });
-            
             await navigator.share({
                 title: `Save ${contact.name}`,
                 text: `Contact details for ${contact.name}`,
@@ -388,20 +396,9 @@ async function saveToDeviceContacts(contact) {
                 address: contact.address ? [{ address: contact.address }] : undefined
             };
             
-            await Swal.fire({
-                title: 'Preparing Contacts...',
-                allowOutsideClick: false,
-                didOpen: () => Swal.showLoading()
-            });
-            
             const contacts = await navigator.contacts.select(props, { multiple: false });
             if (contacts.length > 0) {
-                Swal.fire({
-                    title: 'Contact Saved',
-                    text: 'The contact has been added to your device',
-                    icon: 'success',
-                    timer: 2000
-                });
+                showSuccessAlert('Contact saved to device');
                 return;
             }
         }
@@ -415,6 +412,28 @@ async function saveToDeviceContacts(contact) {
             // Fallback to vCard download if other methods fail
             await downloadVCard(contact);
         }
+    }
+}
+
+async function handleCopyContact(contact) {
+    try {
+        // Close the original dialog immediately
+        Swal.close();
+        
+        let contactText = `${contact.name}\n`;
+        if (contact.email) contactText += `Email: ${contact.email}\n`;
+        if (contact.phone) contactText += `Phone: ${contact.phone}\n`;
+        if (contact.address) contactText += `Address: ${contact.address}\n`;
+        
+        await navigator.clipboard.writeText(contactText);
+        showSuccessAlert('Contact details copied to clipboard');
+    } catch (error) {
+        console.error('Failed to copy:', error);
+        Swal.fire({
+            title: 'Error',
+            text: 'Failed to copy contact details',
+            icon: 'error'
+        });
     }
 }
 
@@ -443,47 +462,22 @@ async function downloadVCard(contact) {
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
         
-        await Swal.fire({
-            title: 'Contact Downloaded',
-            text: 'The contact file has been downloaded. Import it to your contacts app.',
-            icon: 'success',
-            timer: 3000,
-            showConfirmButton: false
-        });
+        showSuccessAlert('Contact downloaded (import to your contacts)');
     } catch (error) {
         console.error('Error downloading vCard:', error);
         throw error;
     }
 }
 
-async function copyContactDetails(contact) {
-    try {
-        let contactText = `${contact.name}\n`;
-        if (contact.email) contactText += `Email: ${contact.email}\n`;
-        if (contact.phone) contactText += `Phone: ${contact.phone}\n`;
-        if (contact.address) contactText += `Address: ${contact.address}\n`;
-        
-        await navigator.clipboard.writeText(contactText);
-        
-        await Swal.fire({
-            title: 'Copied!',
-            text: 'Contact details copied to clipboard',
-            icon: 'success',
-            timer: 1000,
-            showConfirmButton: false,
-            position: 'bottom',
-            toast: true,
-            width: '300px',
-            background: "#1a1a1a",
-        });
-    } catch (error) {
-        console.error('Failed to copy:', error);
-        await Swal.fire({
-            title: 'Error',
-            text: 'Failed to copy contact details',
-            icon: 'error'
-        });
-    }
+function showSuccessAlert(message) {
+    Swal.fire({
+        title: 'Success!',
+        text: message,
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false,
+        position: 'center'
+    });
 }
 
 // XSS protection
@@ -517,10 +511,12 @@ function showShareOptions(link) {
     
     username = `https://tccards.tn/@${link}`;
     // Generate a profile image with initials as fallback
+    const profileName = document.querySelector('h2')?.textContent || 'User';
     const profileImage = document.querySelector('.profile-picture')?.src || 
-        `<div class="avatar-fallback" style="background-color: ${stringToColor(document.querySelector('h2')?.textContent || 'User')}">
-            ${getInitials(document.querySelector('h2')?.textContent || 'User')}
+        `<div class="avatar-fallback" style="background-color: ${stringToColor(profileName)}">
+            ${getInitials(profileName)}
         </div>`;
+    
 
     Swal.fire({
         title: 'Share Profile',
@@ -582,6 +578,18 @@ function showShareOptions(link) {
             </div>
         `
     });
+}
+function stringToColor(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const hue = Math.abs(hash % 360);
+    return `hsl(${hue}, 70%, 60%)`;
+}
+
+function getInitials(name) {
+    return name.split(' ').map(part => part[0]).join('').toUpperCase().substring(0, 2);
 }
 
 // Add these helper functions
