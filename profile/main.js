@@ -316,7 +316,6 @@ function renderSocialLinks(links) {
 }
 async function showContactDetails(contact) {
     try {
-        // Create contact details HTML
         const contactHtml = `
             <div class="contact-details">
                 <img src="${escapeHtml(contact.profilepic)}" class="profile-picture" alt="${escapeHtml(contact.name)}">
@@ -327,8 +326,7 @@ async function showContactDetails(contact) {
             </div>
         `;
 
-        // Show contact details with multiple save options
-        const { value: saveMethod, isDismissed } = await Swal.fire({
+        const { value: saveMethod } = await Swal.fire({
             title: 'Save Contact',
             html: contactHtml,
             background: typeof contact.style === 'object' ? contact.style?.background : contact.style || '#162949',
@@ -338,145 +336,129 @@ async function showContactDetails(contact) {
             denyButtonText: 'Copy Details',
             cancelButtonText: 'Cancel',
             color: '#fff',
-            focusConfirm: false,
-            allowOutsideClick: false,
-            allowEscapeKey: true,
-            footer: '<small>Choose how you want to save this contact</small>',
             showLoaderOnConfirm: true,
-            preConfirm: () => {
-                return new Promise((resolve) => {
-                    // This gets resolved in the button handlers
-                    window.resolveSwalPromise = resolve;
-                });
-            }
+            allowOutsideClick: false
         });
 
-        // Handle the user's choice
         if (saveMethod === 'confirm') {
             await handleSaveContact(contact);
         } else if (saveMethod === 'deny') {
             await handleCopyContact(contact);
         }
-        
-        // If dismissed (cancel or close button), just return
-        return;
 
     } catch (error) {
-        console.error('Error in showContactDetails:', error);
-        Swal.fire({
-            title: 'Error',
-            text: 'Something went wrong. Please try again.',
-            icon: 'error'
-        });
-    }
-}
-
-async function handleSaveContact(contact) {
-    try {
-        // Close the original dialog
-        Swal.close();
-        
-        // Try Web Share API first (mobile browsers)
-        if (navigator.share) {
-            await navigator.share({
-                title: `Save ${contact.name}`,
-                text: `Contact details for ${contact.name}`,
-                url: generateContactVCard(contact)
-            });
-            return;
-        }
-
-        // Try Contacts API (experimental)
-        if ('contacts' in navigator && 'ContactsManager' in window) {
-            const props = ['name', 'email', 'tel', 'address'];
-            const contactData = {
-                name: [contact.name],
-                email: contact.email ? [{ address: contact.email }] : undefined,
-                tel: contact.phone ? [{ number: contact.phone }] : undefined,
-                address: contact.address ? [{ address: contact.address }] : undefined
-            };
-            
-            const contacts = await navigator.contacts.select(props, { multiple: false });
-            if (contacts.length > 0) {
-                showSuccessAlert('Contact saved to device');
-                return;
-            }
-        }
-
-        // Fallback to vCard download
-        await downloadVCard(contact);
-        
-    } catch (error) {
-        console.error('Error saving contact:', error);
-        if (error.name !== 'AbortError') {
-            // Fallback to vCard download if other methods fail
-            await downloadVCard(contact);
-        }
+        console.error('Error:', error);
+        Swal.fire('Error', 'Failed to save contact', 'error');
     }
 }
 
 async function handleCopyContact(contact) {
     try {
-        // Close the original dialog immediately
-        Swal.close();
-        
         let contactText = `${contact.name}\n`;
         if (contact.email) contactText += `Email: ${contact.email}\n`;
         if (contact.phone) contactText += `Phone: ${contact.phone}\n`;
         if (contact.address) contactText += `Address: ${contact.address}\n`;
         
         await navigator.clipboard.writeText(contactText);
-        showSuccessAlert('Contact details copied to clipboard');
+        await showAlert('Copied!', 'Contact details copied to clipboard');
     } catch (error) {
-        console.error('Failed to copy:', error);
-        Swal.fire({
-            title: 'Error',
-            text: 'Failed to copy contact details',
-            icon: 'error'
-        });
+        console.error('Copy failed:', error);
+        await showAlert('Error', 'Failed to copy details');
     }
 }
 
-function generateContactVCard(contact) {
+async function handleSaveContact(contact) {
+    try {
+        // iOS Devices
+        if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+            await saveForIOS(contact);
+        }
+        // Android with Contacts API
+        else if (navigator.contacts && typeof navigator.contacts.select === 'function') {
+            await saveWithContactsAPI(contact);
+        }
+        // Fallback for other browsers
+        else {
+            await saveWithVCard(contact);
+        }
+    } catch (error) {
+        console.error('Save failed:', error);
+        await showAlert('Error', 'Failed to save contact');
+    }
+}
+
+async function saveForIOS(contact) {
+    const vCard = generateVCard(contact);
+    const blob = new Blob([vCard], { type: 'text/vcard' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${contact.name.replace(/\s+/g, '_')}.vcf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    
+    await showAlert('Tap Share', 'Choose "Add to Contacts" from share sheet');
+}
+
+async function saveWithContactsAPI(contact) {
+    const props = ['name'];
+    if (contact.email) props.push('email');
+    if (contact.phone) props.push('tel');
+    if (contact.address) props.push('address');
+    
+    const contactData = {
+        name: [contact.name],
+        ...(contact.email && { email: [contact.email] }),
+        ...(contact.phone && { tel: [contact.phone] }),
+        ...(contact.address && { address: [{ address: contact.address }] })
+    };
+    
+    const [savedContact] = await navigator.contacts.select(props, { multiple: false });
+    if (savedContact) {
+        await navigator.contacts.update(savedContact.id, contactData);
+        await showAlert('Updated!', 'Contact updated successfully');
+    } else {
+        await navigator.contacts.create(contactData);
+        await showAlert('Saved!', 'Contact saved to device');
+    }
+}
+
+async function saveWithVCard(contact) {
+    const vCard = generateVCard(contact);
+    const blob = new Blob([vCard], { type: 'text/vcard' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${contact.name.replace(/\s+/g, '_')}.vcf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    
+    await showAlert('Downloaded', 'Import the vCard file to your contacts');
+}
+
+function generateVCard(contact) {
     return `BEGIN:VCARD
 VERSION:3.0
-FN:${contact.name || 'Contact'}
-N:;${contact.name || 'Contact'};;;
-${contact.email ? `EMAIL:${contact.email}\n` : ''}
-${contact.phone ? `TEL;TYPE=CELL:${contact.phone}\n` : ''}
-${contact.address ? `ADR:;;${contact.address};;;;\n` : ''}
-PHOTO;VALUE=URI:${contact.profilepic || ''}
+FN:${escapeHtml(contact.name)}
+${contact.email ? `EMAIL:${escapeHtml(contact.email)}\n` : ''}
+${contact.phone ? `TEL:${escapeHtml(contact.phone)}\n` : ''}
+${contact.address ? `ADR:;;${escapeHtml(contact.address)}\n` : ''}
 END:VCARD`;
 }
 
-async function downloadVCard(contact) {
-    try {
-        const vcard = generateContactVCard(contact);
-        const blob = new Blob([vcard], { type: 'text/vcard' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${contact.name || 'contact'}.vcf`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        
-        showSuccessAlert('Contact downloaded (import to your contacts)');
-    } catch (error) {
-        console.error('Error downloading vCard:', error);
-        throw error;
-    }
-}
-
-function showSuccessAlert(message) {
-    Swal.fire({
-        title: 'Success!',
-        text: message,
+async function showAlert(title, text) {
+    await Swal.fire({
+        title,
+        text,
         icon: 'success',
         timer: 2000,
         showConfirmButton: false,
-        position: 'center'
+        position: 'bottom',
+        toast: true
     });
 }
 
@@ -556,7 +538,7 @@ function showShareOptions(link) {
                 
                 <div class="tc-signup-cta">
                     <p>Create your own digital card with TC Cards</p>
-                    <button class="tc-signup-btn" onclick="window.location.href='https://tccards.tn/plan/free'">
+                    <button class="tc-signup-btn" onclick="window.location.href='https://tccards.tn/plans/free'">
                         Sign up free
                     </button>
                 </div>
