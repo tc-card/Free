@@ -491,7 +491,7 @@ function showError(message) {
 
 function showShareOptions(link) {
     
-    username = `https://tccards.tn/@${link}`;
+    username = `https://p.tccards.tn/@${link}`;
     // Generate a profile image with initials as fallback
     const profileName = document.querySelector('h2')?.textContent || 'User';
     const profileImage = document.querySelector('.profile-picture')?.src || 
@@ -555,8 +555,8 @@ function showShareOptions(link) {
         },
         footer: `
             <div class="tc-footer-links">
-                <a href="/report" class="tc-footer-link">Report Profile</a>
-                <a href="/privacy" class="tc-footer-link">Privacy Notice</a>
+                <a href="https://tccards.tn/report" class="tc-footer-link">Report Profile</a>
+                <a href="https://tccards.tn/help" class="tc-footer-link">Help</a>
             </div>
         `
     });
