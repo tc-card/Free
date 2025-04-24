@@ -60,7 +60,8 @@ async function searchDatabases(databases, identifier, isIdLookup, index = 0) {
         // If we have valid data, handle it
         if (data && typeof data === 'object') {
             try {
-                handleProfileData(data, db.plan);
+                handleProfileData(data,db.plan);
+                // If the profile is found, stop searching
                 return;
             } catch (err) {
                 console.error('Error in handleProfileData:', err);
@@ -75,15 +76,15 @@ async function searchDatabases(databases, identifier, isIdLookup, index = 0) {
     }
 }
 
-// Enhanced profile handler with plan awareness
-function handleProfileData(data, planType) {
+function handleProfileData(data, plan) {
     const loader = document.querySelector('.loader');
     if (loader) {
         loader.style.display = 'none';
     }
     // Open the data array received data.data to access the profile data
     data = data.data || data;
-
+    plan = plan || 'free';
+    // Check if data is valid
     if (!data || typeof data !== 'object') {
         showError("Invalid profile data received");
         return;
@@ -115,8 +116,6 @@ function handleProfileData(data, planType) {
             link: data.Link || 'tccards',
             tagline: data.Tagline || '',
             profilePic: data['Profile Picture URL'] || 'https://tccards.tn/Assets/default.png',
-            bgImage: data['Background Image URL'] || '',
-            formType: data['Form Type'] || '',
             socialLinks: data['Social Links'] || '',
             email: data.Email || '',
             phone: data.Phone || '',
@@ -131,23 +130,10 @@ function handleProfileData(data, planType) {
             document.body.style.background = `${selectedStyle}`;
             } else {
             const styles = {
-                minimal: { background: '#18181b' },
-                black: { background: '#09090b' },
-                navy: { background: '#020617' },
-                forest: { background: '#022c22' },
-                wine: { background: '#450a0a' },
-              
-                // Lighter color themes
-                clouds: { background: '#0ea5e9' },
-                Pink: { background: '#9b0055' },
-                SkyBlue: { background: '#2563eb' },
-                paleRed: { background: '#f00f4d' },
               
                 // Professional Gradients
                 corporateGradient: { background: 'linear-gradient(145deg, rgb(9, 9, 11), rgb(24, 24, 27), rgb(9, 9, 11))' },
                 oceanGradient: { background: 'linear-gradient(145deg, rgb(2, 6, 23), rgb(15, 23, 42), rgb(2, 6, 23))' },
-                forestGradient: { background: 'linear-gradient(145deg, rgb(2, 44, 34), rgb(6, 78, 59), rgb(2, 44, 34))' },
-                burgundyGradient: { background: 'linear-gradient(145deg, rgb(69, 10, 10), rgb(127, 29, 29), rgb(69, 10, 10))' },
                 default: "url(https://tccards.tn/Assets/bg.png) center fixed"
             };
 
@@ -182,50 +168,59 @@ function handleProfileData(data, planType) {
         <center>
             <div class="profile-container">
             <div class="top-right" onclick="showShareOptions('${escapeHtml(profileData.link)}')">
-                <i class="fas fa-share-alt"></i>
+            <i class="fas fa-share-alt"></i>
             </div>
             
-                ${planType === 'standard' && profileData.bgImage ? 
-                    `<div class="profile-banner" style="background-image: url('${escapeHtml(profileData.bgImage)}')"></div>` : ''}
-                
-                <img src="${escapeHtml(profileData.profilePic)}" class="profile-picture" alt="${escapeHtml(profileData.name)}'s profile">
-                
-                <h2>${escapeHtml(profileData.name)}</h2>
-                ${profileData.tagline ? `<p>${escapeHtml(profileData.tagline)}</p>` : ''}
-                
-                ${planType === 'standard' && profileData.formType ? 
-                    `<div class="plan-badge">${escapeHtml(profileData.formType)} Plan</div>` : ''}
-                
-                ${renderSocialLinks(profileData.socialLinks)}
-                
-                ${(profileData.email || profileData.phone || profileData.address) ? 
-                    `<button class="contact-btn" onclick="showContactDetails(${escapeHtml(JSON.stringify({
-                        name: profileData.name,
-                        profilepic: profileData.profilePic,
-                        email: profileData.email,
-                        phone: profileData.phone,
-                        address: profileData.address,
-                        style: styles[data['Selected Style']]?.background || styles.default
-                    }))})">Get in Touch</button>` : ''}
-                
+            <img src="${escapeHtml(profileData.profilePic)}" class="profile-picture" alt="${escapeHtml(profileData.name)}'s profile">
+            
+            <h2>${escapeHtml(profileData.name)}</h2>
+            ${profileData.tagline ? `<p>${escapeHtml(profileData.tagline)}</p>` : ''}
+            
+            ${renderSocialLinks(profileData.socialLinks)}
+            
+            ${(profileData.email || profileData.phone || profileData.address) ? 
+                `<button class="contact-btn" onclick="showContactDetails(${escapeHtml(JSON.stringify({
+                name: profileData.name,
+                profilepic: profileData.profilePic,
+                email: profileData.email,
+                phone: profileData.phone,
+                address: profileData.address,
+                style: styles[data['Selected Style']]?.background || styles.default
+                }))})">Get in Touch</button>` : ''}
 
             <footer class="footer">
-                <p>Powered by &copy; Total Connect ${new Date().getFullYear()}  </p>
-                <p><a href="https://tccards.tn/plan/free" target="_blank">Get Your Free Card</a></p>
+            <p>Powered by &copy; Total Connect ${new Date().getFullYear()}  </p>
+            <p><a href="https://get.tccards.tn" target="_blank" style='color:springgreen'>Get Your Free Card</a></p>
             </footer>
             </div>
         </center>
         `;
         
         // Show success notification
+        
+        // Show success notification
         if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                icon: "success",
-                timer: 1000,
-                showConfirmButton: false,
-                position: 'bottom',
+            const Toast = Swal.mixin({
                 toast: true,
-                background: "#1a1a1a",
+                position: 'bottom-end',
+                showConfirmButton: false,
+                timer: 2000,
+                timerProgressBar: true,
+                background: '#1a1a1a',
+                color: '#ffffff',
+                customClass: {
+                    popup: 'animated fadeInUp'
+                },
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer)
+                    toast.addEventListener('mouseleave', Swal.resumeTimer)
+                }
+            });
+
+            Toast.fire({
+                icon: 'success',
+                title: `Welcome to ${profileData.name}'s profile`,
+                text: 'Tap to interact with the profile'
             });
         }
     } catch (error) {
@@ -316,150 +311,78 @@ function renderSocialLinks(links) {
 }
 async function showContactDetails(contact) {
     try {
+        if (!contact || typeof contact !== 'object') {
+            throw new Error('Invalid contact data');
+        }
+
         const contactHtml = `
             <div class="contact-details">
-                <img src="${escapeHtml(contact.profilepic)}" class="profile-picture" alt="${escapeHtml(contact.name)}">
+                <img src="${escapeHtml(contact.profilepic)}" class="profile-picture" alt="${escapeHtml(contact.name)}" onerror="this.src='https://tccards.tn/Assets/default.png'">
                 <h3>${escapeHtml(contact.name)}</h3>
-                ${contact.email ? `<p><i class="fas fa-envelope"></i> ${escapeHtml(contact.email)}</p>` : ''}
-                ${contact.phone ? `<p><i class="fas fa-phone"></i> ${escapeHtml(contact.phone)}</p>` : ''}
-                ${contact.address ? `<p><i class="fas fa-map-marker-alt"></i> ${escapeHtml(contact.address)}</p>` : ''}
+                ${contact.email ? `<p><a href="mailto:${escapeHtml(contact.email)}" class="contact-link"><i class="fas fa-envelope"></i> ${escapeHtml(contact.email)}</a></p>` : ''}
+                ${contact.phone ? `<p><a href="tel:${escapeHtml(contact.phone)}" class="contact-link"><i class="fas fa-phone"></i> ${escapeHtml(contact.phone)}</a></p>` : ''}
+                ${contact.address ? `<p><a href="https://maps.google.com/?q=${encodeURIComponent(contact.address)}" target="_blank" class="contact-link"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(contact.address)}</a></p>` : ''}
             </div>
         `;
 
-        const { value: saveMethod } = await Swal.fire({
-            title: 'Save Contact',
+        const result = await Swal.fire({
+            title: 'Contact Details',
             html: contactHtml,
             background: typeof contact.style === 'object' ? contact.style?.background : contact.style || '#162949',
-            showDenyButton: true,
+            confirmButtonText: 'Copy Details',
             showCancelButton: true,
-            confirmButtonText: 'Save to Device',
-            denyButtonText: 'Copy Details',
-            cancelButtonText: 'Cancel',
+            cancelButtonText: 'Close',
             color: '#fff',
             showLoaderOnConfirm: true,
-            allowOutsideClick: false
+            allowOutsideClick: false,
+            customClass: {
+                confirmButton: 'swal-confirm-button',
+                cancelButton: 'swal-cancel-button'
+            }
         });
 
-        if (saveMethod === 'confirm') {
-            await handleSaveContact(contact);
-        } else if (saveMethod === 'deny') {
-            await handleCopyContact(contact);
+        if (result.isConfirmed) {
+            await copyContactDetails(contact);
         }
 
     } catch (error) {
-        console.error('Error:', error);
-        Swal.fire('Error', 'Failed to save contact', 'error');
+        console.error('Error in showContactDetails:', error);
+        await Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Could not display contact details',
+            background: '#1a1a1a',
+            color: '#fff'
+        });
     }
 }
 
-async function handleCopyContact(contact) {
+async function copyContactDetails(contact) {
     try {
-        let contactText = `${contact.name}\n`;
-        if (contact.email) contactText += `Email: ${contact.email}\n`;
-        if (contact.phone) contactText += `Phone: ${contact.phone}\n`;
-        if (contact.address) contactText += `Address: ${contact.address}\n`;
-        
+        const contactText = [
+            contact.name,
+            contact.email && `Email: ${contact.email}`,
+            contact.phone && `Phone: ${contact.phone}`,
+            contact.address && `Address: ${contact.address}`
+        ].filter(Boolean).join('\n');
+
         await navigator.clipboard.writeText(contactText);
-        await showAlert('Copied!', 'Contact details copied to clipboard');
+
+        await Swal.fire({
+            icon: 'success',
+            title: 'Copied!',
+            text: 'Contact details copied to clipboard',
+            toast: true,
+            position: 'bottom',
+            showConfirmButton: false,
+            timer: 2000,
+            background: '#1a1a1a',
+            color: '#fff'
+        });
     } catch (error) {
         console.error('Copy failed:', error);
-        await showAlert('Error', 'Failed to copy details');
+        throw new Error('Failed to copy contact details');
     }
-}
-
-async function handleSaveContact(contact) {
-    try {
-        // iOS Devices
-        if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-            await saveForIOS(contact);
-        }
-        // Android with Contacts API
-        else if (navigator.contacts && typeof navigator.contacts.select === 'function') {
-            await saveWithContactsAPI(contact);
-        }
-        // Fallback for other browsers
-        else {
-            await saveWithVCard(contact);
-        }
-    } catch (error) {
-        console.error('Save failed:', error);
-        await showAlert('Error', 'Failed to save contact');
-    }
-}
-
-async function saveForIOS(contact) {
-    const vCard = generateVCard(contact);
-    const blob = new Blob([vCard], { type: 'text/vcard' });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${contact.name.replace(/\s+/g, '_')}.vcf`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    
-    await showAlert('Tap Share', 'Choose "Add to Contacts" from share sheet');
-}
-
-async function saveWithContactsAPI(contact) {
-    const props = ['name'];
-    if (contact.email) props.push('email');
-    if (contact.phone) props.push('tel');
-    if (contact.address) props.push('address');
-    
-    const contactData = {
-        name: [contact.name],
-        ...(contact.email && { email: [contact.email] }),
-        ...(contact.phone && { tel: [contact.phone] }),
-        ...(contact.address && { address: [{ address: contact.address }] })
-    };
-    
-    const [savedContact] = await navigator.contacts.select(props, { multiple: false });
-    if (savedContact) {
-        await navigator.contacts.update(savedContact.id, contactData);
-        await showAlert('Updated!', 'Contact updated successfully');
-    } else {
-        await navigator.contacts.create(contactData);
-        await showAlert('Saved!', 'Contact saved to device');
-    }
-}
-
-async function saveWithVCard(contact) {
-    const vCard = generateVCard(contact);
-    const blob = new Blob([vCard], { type: 'text/vcard' });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${contact.name.replace(/\s+/g, '_')}.vcf`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    
-    await showAlert('Downloaded', 'Import the vCard file to your contacts');
-}
-
-function generateVCard(contact) {
-    return `BEGIN:VCARD
-VERSION:3.0
-FN:${escapeHtml(contact.name)}
-${contact.email ? `EMAIL:${escapeHtml(contact.email)}\n` : ''}
-${contact.phone ? `TEL:${escapeHtml(contact.phone)}\n` : ''}
-${contact.address ? `ADR:;;${escapeHtml(contact.address)}\n` : ''}
-END:VCARD`;
-}
-
-async function showAlert(title, text) {
-    await Swal.fire({
-        title,
-        text,
-        icon: 'success',
-        timer: 2000,
-        showConfirmButton: false,
-        position: 'bottom',
-        toast: true
-    });
 }
 
 // XSS protection
