@@ -316,12 +316,34 @@ async function showContactDetails(contact) {
         }
 
         const contactHtml = `
-            <div class="contact-details">
+            <div class="contact-details-container">
+            <div class="contact-header">
                 <img src="${escapeHtml(contact.profilepic)}" class="profile-picture" alt="${escapeHtml(contact.name)}" onerror="this.src='https://tccards.tn/Assets/default.png'">
                 <h3>${escapeHtml(contact.name)}</h3>
-                ${contact.email ? `<p><a href="mailto:${escapeHtml(contact.email)}" class="contact-link"><i class="fas fa-envelope"></i> ${escapeHtml(contact.email)}</a></p>` : ''}
-                ${contact.phone ? `<p><a href="tel:${escapeHtml(contact.phone)}" class="contact-link"><i class="fas fa-phone"></i> ${escapeHtml(contact.phone)}</a></p>` : ''}
-                ${contact.address ? `<p><a href="https://maps.google.com/?q=${encodeURIComponent(contact.address)}" target="_blank" class="contact-link"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(contact.address)}</a></p>` : ''}
+            </div>
+            <div class="contact-table">
+                ${contact.email ? `
+                <div class="contact-row">
+                    <div class="contact-icon"><i class="fas fa-envelope"></i></div>
+                    <div class="contact-info">
+                    <a href="mailto:${escapeHtml(contact.email)}" class="contact-link">${escapeHtml(contact.email)}</a>
+                    </div>
+                </div>` : ''}
+                ${contact.phone ? `
+                <div class="contact-row">
+                    <div class="contact-icon"><i class="fas fa-phone"></i></div>
+                    <div class="contact-info">
+                    <a href="tel:${escapeHtml(contact.phone)}" class="contact-link">${escapeHtml(contact.phone)}</a>
+                    </div>
+                </div>` : ''}
+                ${contact.address ? `
+                <div class="contact-row">
+                    <div class="contact-icon"><i class="fas fa-map-marker-alt"></i></div>
+                    <div class="contact-info">
+                    <a href="https://maps.google.com/?q=${encodeURIComponent(contact.address)}" target="_blank" class="contact-link">${escapeHtml(contact.address)}</a>
+                    </div>
+                </div>` : ''}
+            </div>
             </div>
         `;
 
