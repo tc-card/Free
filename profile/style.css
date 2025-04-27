@@ -430,3 +430,15 @@ p {
 .tc-close-btn:hover {
     color: #666 !important;
 }
+.tc-cards-share-banner {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 8px;
+    padding: 10px;
+    margin-top: 10px;
+    max-width: 90%;
+    margin-left: auto;
+    margin-right: auto;
+}

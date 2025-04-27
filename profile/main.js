@@ -480,7 +480,7 @@ function showShareOptions(link) {
                         <i class="fab fa-snapchat-ghost"></i>
                     </button>
                 </div>
-                
+                <img src="https://www.gstatic.com/identity/boq/accountsettingsmobile/family_createfamily_large_250307_316x112_f9503fcb7d9c17b775c20b665d1d3401.png" alt="TC Cards" class="tc-cards-share-banner">
                 <div class="tc-signup-cta">
                     <p>Create your own digital card with TC Cards</p>
                     <button class="tc-signup-btn" onclick="window.location.href='https://tccards.tn/plans/free'">
