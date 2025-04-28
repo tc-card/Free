@@ -196,32 +196,18 @@ function handleProfileData(data, plan) {
         </center>
         `;
         
-        // Show success notification
-        
-        // Show success notification
-        if (typeof Swal !== 'undefined') {
-            const Toast = Swal.mixin({
-                toast: true,
-                position: 'bottom-end',
-                showConfirmButton: false,
-                timer: 2000,
-                timerProgressBar: true,
-                background: '#1a1a1a',
-                color: '#ffffff',
-                customClass: {
-                    popup: 'animated fadeInUp'
-                },
-                didOpen: (toast) => {
-                    toast.addEventListener('mouseenter', Swal.stopTimer)
-                    toast.addEventListener('mouseleave', Swal.resumeTimer)
-                }
-            });
-
-            Toast.fire({
-                icon: 'success',
-                title: `Welcome to ${profileData.name}'s profile`,
-                text: 'Tap to interact with the profile'
-            });
+        // Show simple success notification
+        try {
+            if (typeof Swal !== 'undefined' && profileData) {
+                Swal.fire({
+                    icon: 'success',
+                    title: `Welcome to ${profileData?.name || 'User'}'s profile`,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            }
+        } catch (error) {
+            console.error('Error showing welcome message:', error);
         }
     } catch (error) {
         console.error("Profile rendering error:", error);
@@ -235,7 +221,8 @@ function renderSocialLinks(links) {
     // Map of domains to their corresponding Font Awesome icons
     const platformIcons = {
         'facebook.com': 'fab fa-facebook',
-        'twitter.com': 'fab fa-twitter',
+        'twitter.com': 'fab fa-twitter', 
+        'x.com': 'fab fa-x-twitter',
         'instagram.com': 'fab fa-instagram',
         'linkedin.com': 'fab fa-linkedin',
         'youtube.com': 'fab fa-youtube',
@@ -246,27 +233,29 @@ function renderSocialLinks(links) {
         'discord.com': 'fab fa-discord',
         'twitch.tv': 'fab fa-twitch',
         'github.com': 'fab fa-github',
-        'gitlab.com': 'fab fa-gitlab',
         'discord.gg': 'fab fa-discord',
-        'bitly.com': 'fab fa-bitly',
+        'cal.com': 'fas fa-calendar-alt',
+        'calendly.com': 'fas fa-calendar-alt',
+        'linktree.com': 'fas fa-link',
+        'linktr.ee': 'fas fa-link',
+        'tccards.tn': 'fas fa-id-card',
         'medium.com': 'fab fa-medium',
         'whatsapp.com': 'fab fa-whatsapp',
         'wa.me': 'fab fa-whatsapp',
-        'vercel.com': 'fab fa-vercel',
-        'netlify.com': 'fab fa-netlify',
         'dribbble.com': 'fab fa-dribbble',
         'behance.net': 'fab fa-behance',
-        'flickr.com': 'fab fa-flickr',
-        'tumblr.com': 'fab fa-tumblr',
         'telegram.org': 'fab fa-telegram',
-        'slack.com': 'fab fa-slack',
+        't.me': 'fab fa-telegram',
         'vimeo.com': 'fab fa-vimeo',
         'spotify.com': 'fab fa-spotify',
         'apple.com': 'fab fa-apple',
         'google.com': 'fab fa-google',
-        'amazon.com': 'fab fa-amazon',
-        'microsoft.com': 'fab fa-microsoft',
-        'paypal.com': 'fab fa-paypal'
+        'youtube-nocookie.com': 'fab fa-youtube',
+        'soundcloud.com': 'fab fa-soundcloud',
+        'paypal.com': 'fab fa-paypal',
+        'github.io': 'fab fa-github',
+        'stackoverflow.com': 'fab fa-stack-overflow',
+        'quora.com': 'fab fa-quora'
     };
 
     const validLinks = links.split(",")
@@ -535,7 +524,7 @@ function copyShareLink() {
 
 function shareTo(platform) {
     const shareLink = document.getElementById('tc-share-link-input').value;
-    const shareText = `Check out my TC Card: ${shareLink}`;
+    const shareText = `Check out my digital profile: ${shareLink}`;
     
     let url = '';
     switch(platform) {
