@@ -199,12 +199,7 @@ function handleProfileData(data, plan) {
         // Show simple success notification
         try {
             if (typeof Swal !== 'undefined' && profileData) {
-                Swal.fire({
-                    icon: 'success',
-                    title: `Welcome to ${profileData?.name || 'User'}'s profile`,
-                    timer: 2000,
-                    showConfirmButton: false
-                });
+                console.log('Profile found and loaded')
             }
         } catch (error) {
             console.error('Error showing welcome message:', error);
@@ -221,6 +216,10 @@ function renderSocialLinks(links) {
     // Map of domains to their corresponding Font Awesome icons
     const platformIcons = {
         'facebook.com': 'fab fa-facebook',
+        'fb.com': 'fab fa-facebook',
+        'fb.me': 'fab fa-facebook',
+        'messenger.com': 'fab fa-facebook-messenger',
+        'm.me':'fab fa-facebook-messenger',
         'twitter.com': 'fab fa-twitter', 
         'x.com': 'fab fa-x-twitter',
         'instagram.com': 'fab fa-instagram',
@@ -257,6 +256,7 @@ function renderSocialLinks(links) {
         'stackoverflow.com': 'fab fa-stack-overflow',
         'quora.com': 'fab fa-quora'
     };
+
 
     const validLinks = links.split(",")
         .map(link => {
@@ -382,9 +382,8 @@ async function copyContactDetails(contact) {
         await Swal.fire({
             icon: 'success',
             title: 'Copied!',
-            text: 'Contact details copied to clipboard',
             toast: true,
-            position: 'bottom',
+            position: 'center',
             showConfirmButton: false,
             timer: 2000,
             background: '#1a1a1a',
