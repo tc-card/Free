@@ -10,8 +10,8 @@ document.addEventListener("DOMContentLoaded", function() {
         showError("No profile link provided");
         return;
     }
-    // Change the url to https://p.tccards.tn/@"hash" without reloading just the appearance of the url
-    const newUrl = `https://p.tccards.tn/@${hash}`;
+    // Change the url to https://at.tccards.tn/@"hash" without reloading just the appearance of the url
+    const newUrl = `https://at.tccards.tn/@${hash}`;
     window.history.replaceState(null, null, newUrl);
     // Determine if it's an ID or link lookup
     const isIdLookup = hash.startsWith('id_');
@@ -424,7 +424,7 @@ function showError(message) {
 
 function showShareOptions(link) {
     
-    username = `https://p.tccards.tn/@${link}`;
+    username = `https://at.tccards.tn/@${link}`;
     // Generate a profile image with initials as fallback
     const profileName = document.querySelector('h2')?.textContent || 'User';
     const profileImage = document.querySelector('.profile-picture')?.src || 
