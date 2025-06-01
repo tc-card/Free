@@ -1,88 +1,80 @@
+const CONFIG = {
+  defaultBg: "url(https://tccards.tn/Assets/bg.png) center fixed",
+  defaultProfilePic: "https://tccards.tn/Assets/default.png",
+  databases: {
+    id: "AKfycbxKk2ihdfSzAD5qt6cMHmTRHhEyncyfK3Qlmu4ncc2NHuOigltcG837_gNxfbdjg2lE",
+    plan: "basic"
+  },
+}
 document.addEventListener("DOMContentLoaded", function() {
     // Set initial background
     document.body.style.background = "url(https://tccards.tn/Assets/bg.png) center fixed";
     document.body.style.backgroundSize = "cover";
-    document.body.style.backdropFilter = "blur(5px)";
-    
-    // Extract identifier from URL hash
-    const hash = window.location.hash.substring(1);
-    if (!hash) {
-        showError("No profile link provided");
-        return;
-    }
-    
-    // Update URL handling for new domain
-    const newUrl = `https://at.tccards.tn/@${hash}`;
-    window.history.replaceState(null, null, newUrl);
-    
-    // Determine if it's an ID or link lookup
-    const isIdLookup = hash.startsWith('id_');
-    const identifier = isIdLookup ? hash.split('_')[1] : hash;
-    
-    // Database configuration with plan types
-    const databases = [
-        {
-            id: 'AKfycbxKk2ihdfSzAD5qt6cMHmTRHhEyncyfK3Qlmu4ncc2NHuOigltcG837_gNxfbdjg2lE',
-            plan: 'free',
-            // Add CORS headers for the new domain
-            headers: {
-                'Origin': 'https://at.tccards.tn',
-                'Access-Control-Allow-Origin': '*'
-            }
-        }
-    ];
+  document.body.style.backdropFilter = "blur(5px)";
 
-    // Start searching databases
-    searchDatabases(databases, identifier, isIdLookup);
+  // Extract identifier from URL hash
+  const hash = window.location.hash.substring(1);
+  if (!hash) {
+    showError("No profile link provided");
+    return;
+  }
+
+  // Update URL without reload
+  const newUrl = `https://at.tccards.tn/@${hash}`;
+  window.history.replaceState(null, null, newUrl);
+
+  // Determine lookup type and start search
+  const isIdLookup = hash.startsWith("id_");
+  const identifier = isIdLookup ? hash.split("_")[1] : hash;
+
+  searchProfile(identifier, isIdLookup);
 });
 
-async function searchDatabases(databases, identifier, isIdLookup, index = 0) {
-    if (index >= databases.length) {
-        showError("Profile not found in any database");
-        return;
+// Fast profile lookup using single database, redirects to 404.html on error
+async function searchProfile(identifier, isIdLookup) {
+  try {
+    const param = isIdLookup ? "id" : "link";
+    const url = `https://script.google.com/macros/s/${CONFIG.databases.id}/exec?${param}=${encodeURIComponent(identifier)}`;
+
+    const response = await fetchWithTimeout(url, {
+      timeout: 5000
+    });
+
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+    const data = await response.json();
+    if (data?.status === "error") {
+      showError("Profile not found");
+      window.location.href = "/404.html";
+      return;
     }
 
-    const db = databases[index];
-    
-    try {
-        const param = isIdLookup ? 'id' : 'link';
-        const url = `https://script.google.com/macros/s/${db.id}/exec?${param}=${encodeURIComponent(identifier)}`;
-        
-        const response = await fetch(url, {
-            headers: db.headers || {},
-            mode: 'cors'
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        console.log('Received data:', data);
-        
-        if (data && data.status === "error") {
-            searchDatabases(databases, identifier, isIdLookup, index + 1);
-            return;
-        }
-        
-        if (data && typeof data === 'object') {
-            try {
-                handleProfileData(data, db.plan);
-                return;
-            } catch (err) {
-                console.error('Error in handleProfileData:', err);
-                searchDatabases(databases, identifier, isIdLookup, index + 1);
-            }
-        } else {
-            searchDatabases(databases, identifier, isIdLookup, index + 1);
-        }
-    } catch (error) {
-        console.error("Database search error:", error);
-        searchDatabases(databases, identifier, isIdLookup, index + 1);
+    if (data && typeof data === "object") {
+      handleProfileData(data);
+    } else {
+      showError("Invalid profile data");
     }
+  } catch (error) {
+    console.error("Profile search error:", error);
+    showError("Failed to load profile");
+  }
 }
 
+// Helper function with timeout
+async function fetchWithTimeout(resource, options = {}) {
+  const { timeout = 8000 } = options;
+
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+
+  const response = await fetch(resource, {
+    ...options,
+    signal: controller.signal,
+  });
+  clearTimeout(id);
+
+  return response;
+}
 function handleProfileData(data, plan) {
     const loader = document.querySelector('.loader');
     if (loader) {
