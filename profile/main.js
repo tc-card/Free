@@ -420,190 +420,43 @@ function showError(message) {
     const existingLoader = document.querySelector('.loader');
     if (existingLoader) existingLoader.remove();
 }
+async function showShareOptions(link) {
+    try {
+        // Check if Web Share API is supported
+        if (navigator.share) {
+            await navigator.share({
+                title: 'Check out this profile',
+                text: 'View my digital business card',
+                url: link
+            });
+        } else {
+            // Fallback for browsers that don't support Web Share API
+            const shareHtml = `
+                <div class="share-options">
+                    <h3>Share this profile</h3>
+                    <div class="share-links">
+                        <a href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}" target="_blank" class="share-link facebook">Facebook</a>
+                        <a href="https://twitter.com/intent/tweet?url=${encodeURIComponent(link)}" target="_blank" class="share-link twitter">Twitter</a>
+                        <a href="https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(link)}" target="_blank" class="share-link linkedin">LinkedIn</a>
+                        <a href="https://api.whatsapp.com/send?text=${encodeURIComponent(link)}" target="_blank" class="share-link whatsapp">WhatsApp</a>
+                    </div>
+                </div>
+            `;
 
-function showShareOptions(link) {
-    
-    username = `https://at.tccards.tn/@${link}`;
-    // Generate a profile image with initials as fallback
-    const profileName = document.querySelector('h2')?.textContent || 'User';
-    const profileImage = document.querySelector('.profile-picture')?.src || 
-        `<div class="avatar-fallback" style="background-color: ${stringToColor(profileName)}">
-            ${getInitials(profileName)}
-        </div>`;
-    
-
-    Swal.fire({
-        title: 'Share Profile',
-        html: `
-            <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
-                <!-- Header with close button -->
-                <div class="flex justify-end p-3">
-                <button onclick="closeSharePopup()" class="text-gray-400 hover:text-gray-600 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-                </div>
-                
-                <!-- Profile section -->
-                <div class="px-6 pb-2 text-center">
-                <div class="mx-auto w-20 h-20 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white text-2xl font-bold mb-3">
-                    {{ initials }}
-                </div>
-                <h3 class="text-lg font-semibold text-gray-800">@{{ username }}</h3>
-                <p class="text-gray-500 text-sm mt-1">Share my profile with friends</p>
-                </div>
-                
-                <!-- Link copy section -->
-                <div class="px-6 py-4">
-                <div class="flex border border-gray-200 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-all">
-                    <input 
-                    type="text" 
-                    value="{{ shareLink }}" 
-                    readonly
-                    class="flex-1 px-4 py-2 text-gray-700 truncate focus:outline-none"
-                    >
-                    <button 
-                    onclick="copyShareLink()"
-                    class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 flex items-center gap-2 transition-colors"
-                    >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-                    </svg>
-                    <span class="hidden sm:inline">Copy</span>
-                    </button>
-                </div>
-                <p id="copy-message" class="text-center text-blue-500 text-xs mt-1 h-4 opacity-0 transition-opacity">Link copied!</p>
-                </div>
-                
-                <!-- Social sharing buttons -->
-                <div class="px-6 py-3 border-t border-gray-100">
-                <p class="text-center text-gray-500 text-sm mb-3">Or share via</p>
-                <div class="flex justify-center gap-3 flex-wrap">
-                    <!-- Facebook -->
-                    <button onclick="shareTo('facebook')" class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700 transition-colors">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z"/>
-                    </svg>
-                    </button>
-                    
-                    <!-- WhatsApp -->
-                    <button onclick="shareTo('whatsapp')" class="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center hover:bg-green-600 transition-colors">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                    </svg>
-                    </button>
-                    
-                    <!-- Twitter -->
-                    <button onclick="shareTo('twitter')" class="w-10 h-10 rounded-full bg-blue-400 text-white flex items-center justify-center hover:bg-blue-500 transition-colors">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84"/>
-                    </svg>
-                    </button>
-                    
-                    <!-- LinkedIn -->
-                    <button onclick="shareTo('linkedin')" class="w-10 h-10 rounded-full bg-blue-700 text-white flex items-center justify-center hover:bg-blue-800 transition-colors">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
-                    </svg>
-                    </button>
-                    
-                    <!-- Telegram -->
-                    <button onclick="shareTo('telegram')" class="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center hover:bg-blue-600 transition-colors">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 0c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.295-.6.295-.002 0-.003 0-.005 0l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.121l-6.869 4.326-2.96-.924c-.64-.203-.658-.64.135-.954l11.566-4.458c.538-.196 1.006.128.832.941z"/>
-                    </svg>
-                    </button>
-                    
-                    <!-- Email -->
-                    <button onclick="shareTo('email')" class="w-10 h-10 rounded-full bg-gray-600 text-white flex items-center justify-center hover:bg-gray-700 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                    </button>
-                </div>
-                </div>
-                
-                <!-- CTA section -->
-                <div class="px-6 py-4 bg-gray-50 text-center">
-                <button onclick="window.location.href='https://tccards.tn/plans/free'" class="bg-gradient-to-r from-blue-500 to-purple-500 text-white font-medium py-2 px-6 rounded-full hover:shadow-md transition-all">
-                    Get Started - It's Free
-                </button>
-                </div>
-    
-        `,
-        showConfirmButton: false,
-        showCloseButton: true,
-        maxWidth: '600px',
-        width: '90%',
-        background: '#ffffff',
-        customClass: {
-            popup: 'tc-share-popup',
-            closeButton: 'tc-close-btn'
-        },
-        footer: `
-
-            <!-- Footer links -->
-            <div class="px-6 py-3 border-t border-gray-100 flex justify-center gap-4 text-xs text-gray-500">
-            <a href="https://tccards.tn/terms" class="hover:text-blue-500">Terms</a>
-            <a href="https://tccards.tn/privacy" class="hover:text-blue-500">Privacy</a>
-            <a href="https://tccards.tn/help" class="hover:text-blue-500">Help</a>
-            </div>
-        </div>
-        </div>
-        `
-    });
-}
-function stringToColor(str) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+            Swal.fire({
+                title: 'Share Profile',
+                html: shareHtml,
+                showCancelButton: true,
+                cancelButtonText: 'Close',
+                background: '#162949',
+                color: '#fff',
+                customClass: {
+                    confirmButton: 'swal-confirm-button',
+                    cancelButton: 'swal-cancel-button'
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Error sharing:', error);
     }
-    const hue = Math.abs(hash % 360);
-    return `hsl(${hue}, 70%, 60%)`;
-}
-
-function getInitials(name) {
-    return name.split(' ').map(part => part[0]).join('').toUpperCase().substring(0, 2);
-}
-
-// Add these helper functions
-function copyShareLink() {
-    const input = document.getElementById('tc-share-link-input');
-    input.select();
-    document.execCommand('copy');
-    Swal.fire({
-        title: 'Copied!',
-        text: 'Link copied to clipboard',
-        icon: 'success',
-        timer: 2000,
-        showConfirmButton: false
-    });
-}
-
-function shareTo(platform) {
-    const shareLink = document.getElementById('tc-share-link-input').value;
-    const shareText = `Check out my digital profile: ${shareLink}`;
-    
-    let url = '';
-    switch(platform) {
-        case 'facebook':
-            url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareLink)}`;
-            break;
-        case 'whatsapp':
-            url = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
-            break;
-        case 'linkedin':
-            url = `https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(shareLink)}`;
-            break;
-        case 'messenger':
-            url = `fb-messenger://share/?link=${encodeURIComponent(shareLink)}`;
-            break;
-        case 'snapchat':
-            url = `https://www.snapchat.com/scan?attachmentUrl=${encodeURIComponent(shareLink)}`;
-            break;
-    }
-    
-    window.open(url, '_blank', 'noopener,noreferrer');
 }

@@ -261,3 +261,95 @@ p {
     bottom: 0;
     width: 100%;
 }
+
+/* Share Options Styling */
+.share-options {
+    padding: 20px;
+    text-align: center;
+}
+
+.share-options h3 {
+    margin-bottom: 20px;
+    color: #fff;
+    font-size: 1.2rem;
+}
+
+.share-links {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    padding: 10px;
+}
+
+.share-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px;
+    border-radius: 8px;
+    color: white;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+/* Social Media Colors */
+.share-link.facebook {
+    background: #1877f2;
+}
+
+.share-link.twitter {
+    background: #1da1f2;
+}
+
+.share-link.linkedin {
+    background: #0a66c2;
+}
+
+.share-link.whatsapp {
+    background: #25d366;
+}
+
+/* Hover Effects */
+.share-link:hover {
+    transform: translateY(-2px);
+    opacity: 0.9;
+}
+
+/* Font Awesome Icons */
+.share-link::before {
+    font-family: "Font Awesome 5 Brands";
+    font-size: 1.2rem;
+}
+
+.share-link.facebook::before {
+    content: "\f39e";
+}
+
+.share-link.twitter::before {
+    content: "\f099";
+}
+
+.share-link.linkedin::before {
+    content: "\f0e1";
+}
+
+.share-link.whatsapp::before {
+    content: "\f232";
+}
+
+/* Top Right Share Button */
+.top-right {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 8px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.top-right:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
