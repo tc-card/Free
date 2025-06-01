@@ -435,45 +435,75 @@ function showShareOptions(link) {
     Swal.fire({
         title: 'Share Profile',
         html: `
-            <div class="tc-share-container">
-                <div class="tc-profile-header">
-                    ${typeof profileImage === 'string' ? 
-                        `<img src="${profileImage}" class="tc-profile-pic" alt="Profile">` : 
-                        profileImage}
-                    <h3 class="tc-username">@${link}</h3>
-                </div>
-                
-                <div class="tc-share-link">
-                    <input type="text" value="${username}" id="tc-share-link-input" readonly>
-                    <button class="tc-copy-btn" onclick="copyShareLink()">
-                        <i class="fas fa-copy"></i> 
-                    </button>
-                </div>
-                
-                <div class="tc-social-share">
-                    <button class="tc-social-btn facebook" onclick="shareTo('facebook')">
-                        <i class="fab fa-facebook-f"></i>
-                    </button>
-                    <button class="tc-social-btn whatsapp" onclick="shareTo('whatsapp')">
-                        <i class="fab fa-whatsapp"></i>
-                    </button>
-                    <button class="tc-social-btn linkedin" onclick="shareTo('linkedin')">
-                        <i class="fab fa-linkedin-in"></i>
-                    </button>
-                    <button class="tc-social-btn messenger" onclick="shareTo('messenger')">
-                        <i class="fab fa-facebook-messenger"></i>
-                    </button>
-                    <button class="tc-social-btn snapchat" onclick="shareTo('snapchat')">
-                        <i class="fab fa-snapchat-ghost"></i>
-                    </button>
-                </div>
-                <img src="https://www.gstatic.com/identity/boq/accountsettingsmobile/family_createfamily_large_250307_316x112_f9503fcb7d9c17b775c20b665d1d3401.png" alt="TC Cards" class="tc-cards-share-banner">
-                <div class="tc-signup-cta">
-                    <button class="tc-signup-btn" onclick="window.location.href='https://tccards.tn/plans/free'">
-                        Sign up free
-                    </button>
-                </div>
+        <div class="tc-share-popup">
+    <div class="tc-share-container">
+        <div class="top-right">
+            <button class="tc-close-btn" onclick="closeSharePopup()">×</button>
+        </div>
+        
+        <div class="tc-profile-header">
+            ${typeof profileImage === 'string' ? 
+                `<img src="${profileImage}" class="tc-profile-pic" alt="Profile">` : 
+                `<div class="avatar-fallback" style="background-color: ${getRandomColor()}">${username.charAt(0).toUpperCase()}</div>`}
+            <h3 class="tc-username">@${username}</h3>
+            <p class="tc-share-text">Share my profile with friends</p>
+        </div>
+        
+        <div class="tc-share-link-container">
+            <div class="tc-share-link">
+                <input type="text" value="https://tccards.tn/${link}" id="tc-share-link-input" readonly>
+                <button class="tc-copy-btn" onclick="copyShareLink()">
+                    <i class="fas fa-copy"></i> <span class="copy-text">Copy</span>
+                </button>
             </div>
+            <p class="tc-copy-message">Link copied!</p>
+        </div>
+        
+        <div class="tc-social-share">
+            <p class="tc-share-title">Or share via</p>
+            <div class="tc-social-buttons">
+                <button class="tc-social-btn facebook" onclick="shareTo('facebook')" title="Share on Facebook">
+                    <i class="fab fa-facebook-f"></i>
+                </button>
+                <button class="tc-social-btn whatsapp" onclick="shareTo('whatsapp')" title="Share on WhatsApp">
+                    <i class="fab fa-whatsapp"></i>
+                </button>
+                <button class="tc-social-btn twitter" onclick="shareTo('twitter')" title="Share on Twitter">
+                    <i class="fab fa-twitter"></i>
+                </button>
+                <button class="tc-social-btn linkedin" onclick="shareTo('linkedin')" title="Share on LinkedIn">
+                    <i class="fab fa-linkedin-in"></i>
+                </button>
+                <button class="tc-social-btn messenger" onclick="shareTo('messenger')" title="Share on Messenger">
+                    <i class="fab fa-facebook-messenger"></i>
+                </button>
+                <button class="tc-social-btn telegram" onclick="shareTo('telegram')" title="Share on Telegram">
+                    <i class="fab fa-telegram-plane"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="tc-cards-promo">
+            <img src="https://www.gstatic.com/identity/boq/accountsettingsmobile/family_createfamily_large_250307_316x112_f9503fcb7d9c17b775c20b665d1d3401.png" alt="TC Cards" class="tc-cards-share-banner">
+            <div class="tc-promo-text">
+                <h4>Join TC Cards Today</h4>
+                <p>Create your digital business card in minutes</p>
+            </div>
+        </div>
+        
+        <div class="tc-signup-cta">
+            <button class="tc-signup-btn" onclick="window.location.href='https://tccards.tn/plans/free'">
+                Get Started - It's Free
+            </button>
+        </div>
+        
+        <div class="tc-footer-links">
+            <a href="https://tccards.tn/terms" class="tc-footer-link">Terms</a>
+            <a href="https://tccards.tn/privacy" class="tc-footer-link">Privacy</a>
+            <a href="https://tccards.tn/help" class="tc-footer-link">Help</a>
+        </div>
+    </div>
+</div>
         `,
         showConfirmButton: false,
         showCloseButton: true,
