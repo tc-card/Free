@@ -3,7 +3,7 @@ const CONFIG = {
   defaultProfilePic: "https://tccards.tn/Assets/default.png",
   databases: {
     id: "AKfycbxKk2ihdfSzAD5qt6cMHmTRHhEyncyfK3Qlmu4ncc2NHuOigltcG837_gNxfbdjg2lE",
-    plan: "basic"
+    plan: "free"
   },
 }
 document.addEventListener("DOMContentLoaded", function() {
