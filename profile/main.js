@@ -451,7 +451,7 @@ function showShareOptions(link) {
         
         <div class="tc-share-link-container">
             <div class="tc-share-link">
-                <input type="text" value="https://tccards.tn/${link}" id="tc-share-link-input" readonly>
+                <input type="text" value="@${link}" id="tc-share-link-input" readonly>
                 <button class="tc-copy-btn" onclick="copyShareLink()">
                     <i class="fas fa-copy"></i> <span class="copy-text">Copy</span>
                 </button>
@@ -483,27 +483,12 @@ function showShareOptions(link) {
             </div>
         </div>
         
-        <div class="tc-cards-promo">
-            <img src="https://www.gstatic.com/identity/boq/accountsettingsmobile/family_createfamily_large_250307_316x112_f9503fcb7d9c17b775c20b665d1d3401.png" alt="TC Cards" class="tc-cards-share-banner">
-            <div class="tc-promo-text">
-                <h4>Join TC Cards Today</h4>
-                <p>Create your digital business card in minutes</p>
-            </div>
-        </div>
-        
         <div class="tc-signup-cta">
             <button class="tc-signup-btn" onclick="window.location.href='https://tccards.tn/plans/free'">
                 Get Started - It's Free
             </button>
         </div>
         
-        <div class="tc-footer-links">
-            <a href="https://tccards.tn/terms" class="tc-footer-link">Terms</a>
-            <a href="https://tccards.tn/privacy" class="tc-footer-link">Privacy</a>
-            <a href="https://tccards.tn/help" class="tc-footer-link">Help</a>
-        </div>
-    </div>
-</div>
         `,
         showConfirmButton: false,
         showCloseButton: true,
@@ -515,10 +500,13 @@ function showShareOptions(link) {
             closeButton: 'tc-close-btn'
         },
         footer: `
-            <div class="tc-footer-links">
-                <a href="https://tccards.tn/report" class="tc-footer-link">Report Profile</a>
-                <a href="https://tccards.tn/help" class="tc-footer-link">Help</a>
-            </div>
+        <div class="tc-footer-links">
+            <a href="https://tccards.tn/terms" class="tc-footer-link">Terms</a>
+            <a href="https://tccards.tn/privacy" class="tc-footer-link">Privacy</a>
+            <a href="https://tccards.tn/help" class="tc-footer-link">Help</a>
+        </div>
+    </div>
+</div>
         `
     });
 }
