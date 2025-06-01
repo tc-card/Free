@@ -10,9 +10,11 @@ document.addEventListener("DOMContentLoaded", function() {
         showError("No profile link provided");
         return;
     }
-    // Change the url to https://at.tccards.tn/@"hash" without reloading just the appearance of the url
+    
+    // Update URL handling for new domain
     const newUrl = `https://at.tccards.tn/@${hash}`;
     window.history.replaceState(null, null, newUrl);
+    
     // Determine if it's an ID or link lookup
     const isIdLookup = hash.startsWith('id_');
     const identifier = isIdLookup ? hash.split('_')[1] : hash;
@@ -20,8 +22,13 @@ document.addEventListener("DOMContentLoaded", function() {
     // Database configuration with plan types
     const databases = [
         {
-            id: 'AKfycbxU8axs4Xduqc84jj_utLsi-pCxSEyw9exEO7PuNo940qQ1bJ4-NxREnUgVhdzS9plb',
-            plan: 'free'
+            id: 'AKfycbxKk2ihdfSzAD5qt6cMHmTRHhEyncyfK3Qlmu4ncc2NHuOigltcG837_gNxfbdjg2lE',
+            plan: 'free',
+            // Add CORS headers for the new domain
+            headers: {
+                'Origin': 'https://at.tccards.tn',
+                'Access-Control-Allow-Origin': '*'
+            }
         }
     ];
 
@@ -29,7 +36,6 @@ document.addEventListener("DOMContentLoaded", function() {
     searchDatabases(databases, identifier, isIdLookup);
 });
 
-// Enhanced database search with plan awareness
 async function searchDatabases(databases, identifier, isIdLookup, index = 0) {
     if (index >= databases.length) {
         showError("Profile not found in any database");
@@ -42,26 +48,27 @@ async function searchDatabases(databases, identifier, isIdLookup, index = 0) {
         const param = isIdLookup ? 'id' : 'link';
         const url = `https://script.google.com/macros/s/${db.id}/exec?${param}=${encodeURIComponent(identifier)}`;
         
-        const response = await fetch(url);
+        const response = await fetch(url, {
+            headers: db.headers || {},
+            mode: 'cors'
+        });
+        
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
+        
         const data = await response.json();
         
-        // Debug log
         console.log('Received data:', data);
         
-        // If data has status error, try next database
         if (data && data.status === "error") {
             searchDatabases(databases, identifier, isIdLookup, index + 1);
             return;
         }
         
-        // If we have valid data, handle it
         if (data && typeof data === 'object') {
             try {
-                handleProfileData(data,db.plan);
-                // If the profile is found, stop searching
+                handleProfileData(data, db.plan);
                 return;
             } catch (err) {
                 console.error('Error in handleProfileData:', err);
