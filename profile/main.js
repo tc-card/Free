@@ -174,7 +174,7 @@ function handleProfileData(data, plan) {
         };
         // Render the profile card
         container.innerHTML = `
-            <div class="w-full max-w-md p-6 md:p-24 rounded-xl bg-gray-900 shadow-lg mx-auto profile-card">
+            <div class="w-full container max-w-md p-6 md:p-24 rounded-xl shadow-lg mx-auto" style="background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px);">
                 <div class="flex justify-end mb-0 top-right" onclick="showShareOptions('${escapeHtml(profileData.link)}')">
                     <div class="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center">
                         <i class="fas fa-share-alt text-gray-400"></i>
@@ -182,10 +182,10 @@ function handleProfileData(data, plan) {
                 </div>
                 <div class="flex flex-col items-center">
                     <img src="${escapeHtml(profileData.profilePic)}" class="w-32 h-32 bg-gray-800 rounded-full mb-4 profile-picture" alt="${escapeHtml(profileData.name)}'s profile">
-                    <div class="w-48 h-12 bg-gray-800 rounded mb-2 flex items-center justify-center">
+                    <div class="w-full h-12 bg-gray-800 rounded mb-2 flex items-center justify-center">
                         <h1 class="text-xl text-2xl font-bold text-white">${escapeHtml(profileData.name)}</h1>
                     </div>
-                    ${profileData.tagline ? `<div class="w-32 h-6 bg-gray-800 rounded mb-4 flex items-center justify-center"><p class="text-gray-300">${escapeHtml(profileData.tagline)}</p></div>` : ''}
+                    ${profileData.tagline ? `<div class="w-full h-6 bg-gray-800 rounded mb-4 flex items-center justify-center"><p class="text-gray-300">${escapeHtml(profileData.tagline)}</p></div>` : ''}
                     <div class="w-64 bg-transparent mb-4">
                         ${renderSocialLinks(profileData.socialLinks)}
                     </div>
@@ -201,9 +201,9 @@ function handleProfileData(data, plan) {
                             }))})">Get in Touch</button>
                         </div>` : ''}
                 </div>
-                <div class="border-t border-gray-800 mt-4 pt-4">
+                <div class="border-t border-gray-800">
                     <footer class="footer mt-4">
-                            <div class="w-2/3 h-4 bg-gray-800 rounded mb-2 mx-auto">Powered by &copy; Total Connect ${new Date().getFullYear()}</div>
+                            <div class="w-full h-4 bg-gray-800 rounded mb-2 mx-auto"><a href="https://tccards.tn"> Powered by &copy; Total Connect ${new Date().getFullYear()}</a></div>
                             <div class="w-1/2 h-4 bg-gray-800 rounded mx-auto"><a href="https://get.tccards.tn" target="_blank" style='color:springgreen'>Get Your Free Card</a></div>
                     </footer>
                 </div>
