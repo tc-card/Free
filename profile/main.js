@@ -185,8 +185,8 @@ function handleProfileData(data, plan) {
                     <div class="w-full h-12 bg-gray-800 rounded mb-2 flex items-center justify-center">
                         <h1 class="text-xl text-2xl font-bold text-white">${escapeHtml(profileData.name)}</h1>
                     </div>
-                    ${profileData.tagline ? `<div class="w-full h-6 bg-gray-800 rounded mb-4 flex items-center justify-center"><p class="text-gray-300">${escapeHtml(profileData.tagline)}</p></div>` : ''}
-                    <div class="w-64 bg-transparent mb-4">
+                    ${profileData.tagline ? `<div class="w-full h-full bg-gray-800 rounded mb-4 flex items-center justify-center"><p class="text-gray-300">${escapeHtml(profileData.tagline)}</p></div>` : ''}
+                    <div class="w-full bg-transparent mb-4">
                         ${renderSocialLinks(profileData.socialLinks)}
                     </div>
                     ${(profileData.email || profileData.phone || profileData.address) ? 
