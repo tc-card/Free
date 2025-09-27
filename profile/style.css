@@ -140,26 +140,6 @@ p {
     text-align: center;
     width: 100%;
 }
-/* Add these new styles */
-.profile-banner {
-    height: 120px;
-    background-size: cover;
-    background-position: center;
-    border-radius: 12px 12px 0 0;
-    margin: -20px -20px 20px -20px;
-}
-
-.plan-badge {
-    display: inline-block;
-    padding: 4px 12px;
-    background: #2563eb;
-    color: white;
-    border-radius: 20px;
-    font-size: 12px;
-    margin: 10px 0;
-    text-transform: uppercase;
-    font-weight: bold;
-}
 
 .error-message {
     text-align: center;
@@ -194,11 +174,9 @@ p {
 .contact-btn {
     width: 100%;
     padding: 12px;
-    background: #2563eb;
+    background: #2564eb8c;
     color: white;
     border: none;
-    border-radius: 8px;
-    margin-top: 20px;
     cursor: pointer;
     transition: background 0.3s;
 }
