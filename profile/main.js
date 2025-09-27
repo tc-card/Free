@@ -78,8 +78,12 @@ async function fetchWithTimeout(resource, options = {}) {
 function handleProfileData(data, plan) {
     const loader = document.querySelector('.loader');
     if (loader) {
-        loader.style.display = 'none';
-    }
+        loader.style.transition = 'opacity 0.5s ease';
+        loader.style.opacity = '0';
+        setTimeout(() => {
+            loader.style.display = 'none';
+        }, 500);
+    }   
     // Open the data array received data.data to access the profile data
     data = data.data || data;
     plan = plan || 'free';
