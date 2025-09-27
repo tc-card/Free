@@ -309,37 +309,44 @@ async function showContactDetails(contact) {
             throw new Error('Invalid contact data');
         }
 
+        // ...existing code...
         const contactHtml = `
-            <div class="contact-details-container">
-            <div class="contact-header">
-                <img src="${escapeHtml(contact.profilepic)}" class="profile-picture" alt="${escapeHtml(contact.name)}" onerror="this.src='https://tccards.tn/Assets/default.png'">
-                <h3>${escapeHtml(contact.name)}</h3>
-            </div>
-            <div class="contact-table">
-                ${contact.email ? `
-                <div class="contact-row">
-                    <div class="contact-icon"><i class="fas fa-envelope"></i></div>
-                    <div class="contact-info">
-                    <a href="mailto:${escapeHtml(contact.email)}" class="contact-link">${escapeHtml(contact.email)}</a>
-                    </div>
-                </div>` : ''}
-                ${contact.phone ? `
-                <div class="contact-row">
-                    <div class="contact-icon"><i class="fas fa-phone"></i></div>
-                    <div class="contact-info">
-                    <a href="tel:${escapeHtml(contact.phone)}" class="contact-link">${escapeHtml(contact.phone)}</a>
-                    </div>
-                </div>` : ''}
-                ${contact.address ? `
-                <div class="contact-row">
-                    <div class="contact-icon"><i class="fas fa-map-marker-alt"></i></div>
-                    <div class="contact-info">
-                    <a href="https://maps.google.com/?q=${encodeURIComponent(contact.address)}" target="_blank" class="contact-link">${escapeHtml(contact.address)}</a>
-                    </div>
-                </div>` : ''}
+        <div class="w-full max-w-md p-8 rounded-xl bg-gray-900 shadow-lg mx-auto">
+            <div class="flex justify-end mb-0">
+            <div class="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center">
+                <img src="${escapeHtml(contact.profilepic)}" class="w-8 h-8 rounded-full object-cover" alt="${escapeHtml(contact.name)}" onerror="this.src='https://tccards.tn/Assets/default.png'">
             </div>
             </div>
+            <div class="flex flex-col items-center">
+            <div class="w-32 h-32 bg-gray-800 rounded-full mb-4 flex items-center justify-center overflow-hidden">
+                <img src="${escapeHtml(contact.profilepic)}" class="w-32 h-32 rounded-full object-cover" alt="${escapeHtml(contact.name)}" onerror="this.src='https://tccards.tn/Assets/default.png'">
+            </div>
+            <div class="w-48 h-12 bg-gray-800 rounded mb-2 flex items-center justify-center">
+                <h3 class="text-xl font-semibold text-white">${escapeHtml(contact.name)}</h3>
+            </div>
+            ${contact.email ? `
+                <div class="w-64 h-16 bg-gray-800 rounded mb-4 flex items-center px-4">
+                <i class="fas fa-envelope mr-3 text-gray-400"></i>
+                <a href="mailto:${escapeHtml(contact.email)}" class="contact-link text-white">${escapeHtml(contact.email)}</a>
+                </div>` : ''}
+            ${contact.phone ? `
+                <div class="w-64 h-16 bg-gray-800 rounded mb-4 flex items-center px-4">
+                <i class="fas fa-phone mr-3 text-gray-400"></i>
+                <a href="tel:${escapeHtml(contact.phone)}" class="contact-link text-white">${escapeHtml(contact.phone)}</a>
+                </div>` : ''}
+            ${contact.address ? `
+                <div class="w-64 h-16 bg-gray-800 rounded mb-4 flex items-center px-4">
+                <i class="fas fa-map-marker-alt mr-3 text-gray-400"></i>
+                <a href="https://maps.google.com/?q=${encodeURIComponent(contact.address)}" target="_blank" class="contact-link text-white">${escapeHtml(contact.address)}</a>
+                </div>` : ''}
+            </div>
+            <div class="border-t border-gray-800 mt-4 pt-4">
+            <div class="w-2/3 h-4 bg-gray-800 rounded mb-2 mx-auto"></div>
+            <div class="w-1/2 h-4 bg-gray-800 rounded mx-auto"></div>
+            </div>
+        </div>
         `;
+        // ...existing code...
 
         const result = await Swal.fire({
             title: 'Contact Details',
