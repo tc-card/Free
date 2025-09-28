@@ -143,7 +143,7 @@ function handleProfileData(data, plan) {
                 // Professional Gradients
                 corporateGradient: { background: 'linear-gradient(145deg, rgb(9, 9, 11), rgb(24, 24, 27), rgb(9, 9, 11))' },
                 oceanGradient: { background: 'linear-gradient(145deg, rgb(2, 6, 23), rgb(15, 23, 42), rgb(2, 6, 23))' },
-                default: "url(https://tccards.tn/Assets/bg.png) center fixed"
+                default: "url(https://www.tccards.tn//Assets/background.png) center fixed"
             };
 
             document.body.style.background = styles[data['Selected Style']]?.background || styles.default;
@@ -170,7 +170,7 @@ function handleProfileData(data, plan) {
             oceanGradient: { background: 'linear-gradient(145deg, rgb(2, 6, 23), rgb(15, 23, 42), rgb(2, 6, 23))' },
             forestGradient: { background: 'linear-gradient(145deg, rgb(2, 44, 34), rgb(6, 78, 59), rgb(2, 44, 34))' },
             burgundyGradient: { background: 'linear-gradient(145deg, rgb(69, 10, 10), rgb(127, 29, 29), rgb(69, 10, 10))' },
-            default: "url(https://tccards.tn/Assets/bg.png) center fixed"
+            default: "url(https://tccards.tn/Assets/bg.png) cover center fixed"
         };
         // Render the profile card
         container.innerHTML = `
@@ -320,10 +320,10 @@ async function showContactDetails(contact) {
 
         const contactHtml = `
             <div class="contact-details-container">
-            <div class="contact-header">
-                <img src="${escapeHtml(contact.profilepic)}" class="profile-picture" alt="${escapeHtml(contact.name)}" onerror="this.src='https://tccards.tn/Assets/default.png'">
-                <h3>${escapeHtml(contact.name)}</h3>
-            </div>
+                <div class="contact-header" style="display: flex; align-items: center; gap: 1rem; justify-content: center;">
+                    <img src="${escapeHtml(contact.profilepic)}" class="profile-picture" alt="${escapeHtml(contact.name)}" onerror="this.src='https://tccards.tn/Assets/default.png'" style="width: 60px; height: 60px; border-radius: 50%;">
+                    <h3 style="margin: 0;">${escapeHtml(contact.name)}</h3>
+                </div>
             <div class="contact-table">
                 ${contact.email ? `
                 <div class="contact-row">
