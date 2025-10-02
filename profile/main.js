@@ -182,7 +182,7 @@ function handleProfileData(data, plan) {
         // Render the profile card
         container.innerHTML = `
             <div class="w-full container max-w-md p-6 md:p-24 rounded-xl shadow-lg mx-auto" style="background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px);">
-                <div class="flex justify-end mb-0 top-right" onclick="showShareOptions('${escapeHtml(profileData.link)}')">
+                <div class="flex justify-end mb-0 top-right" onclick="showShareOptions('${escapeHtml('@' + profileData.link)}')">
                     <div class="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center">
                         <i class="fas fa-share-alt text-gray-400"></i>
                     </div>
