@@ -181,12 +181,12 @@ function handleProfileData(data, plan) {
                     </div>
                 </div>
                 <div class="flex flex-col items-center">
-                    <img src="${escapeHtml(profileData.profilePic)}" class="w-32 h-32 bg-gray-800 rounded-full mb-4 cover object-cover" alt="${escapeHtml(profileData.name)}'s profile">
+                    <img src="${escapeHtml(profileData.profilePic)}" class="w-32 h-32 bg-gray-800 rounded-full mb-4 profile-picture" alt="${escapeHtml(profileData.name)}'s profile">
                     <div class="w-full h-12 bg-gray-800 rounded mb-2 flex items-center justify-center">
                         <h1 class="text-xl text-2xl font-bold text-white">${escapeHtml(profileData.name)}</h1>
                     </div>
-                    ${profileData.tagline ? `<div class="w-full h-full bg-gray-800 rounded mb-4 flex items-center justify-center"><p class="text-gray-300">${escapeHtml(profileData.tagline)}</p></div>` : ''}
-                    <div class="w-full bg-transparent mb-4">
+                    ${profileData.tagline ? `<div class="w-full h-6 bg-gray-800 rounded mb-4 flex items-center justify-center"><p class="text-gray-300">${escapeHtml(profileData.tagline)}</p></div>` : ''}
+                    <div class="w-64 bg-transparent mb-4">
                         ${renderSocialLinks(profileData.socialLinks)}
                     </div>
                     ${(profileData.email || profileData.phone || profileData.address) ? 
@@ -320,10 +320,10 @@ async function showContactDetails(contact) {
 
         const contactHtml = `
             <div class="contact-details-container">
-                <div class="contact-header" style="display: flex; align-items: center; gap: 1rem; justify-content: center;">
-                    <img src="${escapeHtml(contact.profilepic)}" class="profile-picture" alt="${escapeHtml(contact.name)}" onerror="this.src='https://tccards.tn/Assets/default.png'" style="width: 60px; height: 60px; border-radius: 50%;">
-                    <h3 style="margin: 0;">${escapeHtml(contact.name)}</h3>
-                </div>
+            <div class="contact-header">
+                <img src="${escapeHtml(contact.profilepic)}" class="profile-picture" alt="${escapeHtml(contact.name)}" onerror="this.src='https://tccards.tn/Assets/default.png'">
+                <h3>${escapeHtml(contact.name)}</h3>
+            </div>
             <div class="contact-table">
                 ${contact.email ? `
                 <div class="contact-row">
