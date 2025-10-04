@@ -111,28 +111,28 @@
             // Redirect to 404 page if path is not recognized
             window.location.href = '/404.html';
         }
+        // Check if the hash is not empty
+
+        if (hash) {
+            // Whitelist only safe characters: letters, numbers, hyphens, underscores
+            const cleanHash = hash.replace(/[^a-zA-Z0-9-_]/g, ''); 
+            
+            if (cleanHash) {
+                // Safe redirect with sanitized hash
+                window.location.href = `/profile/#${cleanHash}`;
+            } else {
+                // Empty/invalid hash → 404
+                window.location.href = '/404.html';
+            }
+        } else {
+            // No hash → 404
+            window.location.href = '/404.html';
+        }
     </script>
 </head>
 <body>
-    <div class="loader w-full max-w-md p-24 m-25 rounded-xl bg-gray-900 shadow-lg">
-    <div class="flex justify-end mb-0">
-      <div class="w-8 h-8 bg-gray-800 rounded-full"></div>
-    </div>
-    <div class="flex flex-col items-center">
-      <div class="w-32 h-32 bg-gray-800 rounded-full mb-4"></div>
-      <div class="w-48 h-12 bg-gray-800 rounded mb-2"></div>
-      <div class="w-32 h-6 bg-gray-800 rounded mb-4"></div>
-      <div class="w-64 h-16 bg-gray-800 rounded mb-4"></div>
-      <div class="w-64 h-16 bg-gray-800 rounded mb-4"></div>
-      <div class="w-64 h-16 bg-gray-800 rounded mb-4"></div>
-      <div class="w-48 h-12 bg-gray-800 rounded mb-4"></div>
-    </div>
-    <div class="border-t border-gray-800 mt-4 pt-4">
-      <div class="w-2/3 h-4 bg-gray-800 rounded mb-2 mx-auto"></div>
-      <div class="w-1/2 h-4 bg-gray-800 rounded mx-auto"></div>
-    </div>
-</div>
-    
+    <div class="loader"></div>
+<script src="/profile/main.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </body>
 </html>

@@ -2,7 +2,7 @@ const CONFIG = {
   defaultBg: "url(https://tccards.tn/Assets/bg.png) center fixed",
   defaultProfilePic: "https://tccards.tn/Assets/default.png",
   databases: {
-    id: "AKfycbw34B2sJQaK2O7O2NdxnrO_U-xQAD4rXWxPnK7VWx4QcwMoff1L-R6PZ2vYlNaWlffi",
+    id: "AKfycbxKk2ihdfSzAD5qt6cMHmTRHhEyncyfK3Qlmu4ncc2NHuOigltcG837_gNxfbdjg2lE",
     plan: "free"
   },
 }
@@ -41,7 +41,14 @@ async function searchProfile(identifier, isIdLookup) {
     });
 
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
     const data = await response.json();
+    if (data?.status === "error") {
+      showError("Profile not found");
+      window.location.href = "/404.html";
+      return;
+    }
+
     if (data && typeof data === "object") {
       handleProfileData(data);
     } else {
@@ -71,12 +78,8 @@ async function fetchWithTimeout(resource, options = {}) {
 function handleProfileData(data, plan) {
     const loader = document.querySelector('.loader');
     if (loader) {
-        loader.style.transition = 'opacity 0.5s ease';
-        loader.style.opacity = '0';
-        setTimeout(() => {
-            loader.style.display = 'none';
-        }, 500);
-    }   
+        loader.style.display = 'none';
+    }
     // Open the data array received data.data to access the profile data
     data = data.data || data;
     plan = plan || 'free';
