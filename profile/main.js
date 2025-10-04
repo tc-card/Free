@@ -10,7 +10,7 @@ document.addEventListener("DOMContentLoaded", function() {
     // Set initial background
     document.body.style.background = "url(https://tccards.tn/Assets/bg.png) center fixed";
     document.body.style.backgroundSize = "cover";
-  document.body.style.backdropFilter = "blur(5px)";
+    document.body.style.backdropFilter = "blur(5px)";
 
   // Extract identifier from URL hash
   const hash = window.location.hash.substring(1);

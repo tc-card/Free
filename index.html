@@ -111,23 +111,6 @@
             // Redirect to 404 page if path is not recognized
             window.location.href = '/404.html';
         }
-        // Check if the hash is not empty
-
-        if (hash) {
-            // Whitelist only safe characters: letters, numbers, hyphens, underscores
-            const cleanHash = hash.replace(/[^a-zA-Z0-9-_]/g, ''); 
-            
-            if (cleanHash) {
-                // Safe redirect with sanitized hash
-                window.location.href = `/profile/#${cleanHash}`;
-            } else {
-                // Empty/invalid hash → 404
-                window.location.href = '/404.html';
-            }
-        } else {
-            // No hash → 404
-            window.location.href = '/404.html';
-        }
     </script>
 </head>
 <body>
