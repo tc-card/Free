@@ -41,14 +41,7 @@ async function searchProfile(identifier, isIdLookup) {
     });
 
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
     const data = await response.json();
-    if (data?.status === "error") {
-      showError("Profile not found");
-      window.location.href = "/404.html";
-      return;
-    }
-
     if (data && typeof data === "object") {
       handleProfileData(data);
     } else {
