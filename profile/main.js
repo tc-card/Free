@@ -1,7 +1,7 @@
 const CONFIG = {
   defaultBg: "url(https://tccards.tn/Assets/bg.png) center fixed",
   defaultProfilePic: "https://tccards.tn/Assets/default.png",
-  googleScriptUrl: "https://script.google.com/macros/s/AKfycbw34B2sJQaK2O7O2NdxnrO_U-xQAD4rXWxPnK7VWx4QcwMoff1L-R6PZ2vYlNaWlffi/exec" // Make sure this is set
+  googleScriptUrl: "https://script.google.com/macros/s/AKfycbyAQ9FTmH-zPAtPobZrni_XwraT8pGum0s4Qe_mWo79ij3Q_kV_x1fkN4Oe_TjCEckr/exec"
 }
 
 document.addEventListener("DOMContentLoaded", function() {
@@ -21,68 +21,121 @@ document.addEventListener("DOMContentLoaded", function() {
     const newUrl = `https://at.tccards.tn/@${hash}`;
     window.history.replaceState(null, null, newUrl);
 
-    // Determine lookup type and start search
+    // Determine lookup type
     const isIdLookup = hash.startsWith("id_");
     const identifier = isIdLookup ? hash.split("_")[1] : hash;
 
-    loadProfileData(identifier, isIdLookup);
+    // ALWAYS show cached version first (if exists)
+    showCachedProfileFirst(identifier, isIdLookup);
 });
 
-// Improved loadProfileData with better error handling
-async function loadProfileData(identifier, isIdLookup) {
-    document.querySelector('.loader').style.display = 'block';
+// Show cached version immediately, check for updates in background
+async function showCachedProfileFirst(identifier, isIdLookup) {
+    const cachedProfile = getCachedProfile(identifier);
     
+    if (cachedProfile) {
+        console.log('Showing cached profile immediately');
+        handleProfileData(cachedProfile);
+    } else {
+        // No cache exists, show loader
+        document.querySelector('.loader').style.display = 'block';
+    }
+
+    // ALWAYS check for updates in background (silent)
     try {
-        // Retry mechanism for slow connections
-        let retries = 3;
-        let lastError;
-
-        const param = isIdLookup ? "id" : "link";
+        console.log('Checking for profile updates in background...');
+        const freshData = await loadFreshProfileData(identifier, isIdLookup);
         
-        while (retries > 0) {
-            try {
-                console.log(`Attempting to fetch profile (${4 - retries}/3)...`);
-                
-                const response = await fetchWithTimeout(
-                    `${CONFIG.googleScriptUrl}?${param}=${encodeURIComponent(identifier)}`,
-                    { timeout: 10000 } // 10 second timeout
-                );
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-                
-                const data = await response.json();
-                
-                if (data.status === 'success') {
-                    console.log('Profile loaded successfully');
-                    document.querySelector('.loader').style.display = 'none';
-                    handleProfileData(data);
-                    return;
-                } else {
-                    throw new Error(data.message || 'Profile not found');
-                }
-            } catch (error) {
-                lastError = error;
-                retries--;
-                console.warn(`Fetch failed, ${retries} retries left:`, error);
-                
-                if (retries > 0) {
-                    // Show retry message to user
-                    showRetryMessage(4 - retries);
-                    await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
-                }
+        if (freshData) {
+            // Cache the fresh data
+            cacheProfile(identifier, freshData);
+            
+            // Only update UI if profile is different AND we already showed cached version
+            if (cachedProfile && hasProfileChanged(cachedProfile.data, freshData.data)) {
+                console.log('Profile updated, refreshing...');
+                handleProfileData(freshData);
+            } else if (!cachedProfile) {
+                // If no cache existed, show the fresh data
+                handleProfileData(freshData);
             }
         }
-        
-        // All retries failed
-        throw lastError;
-
+        // If fresh data fails, DO NOTHING - keep showing cached version
     } catch (error) {
+        console.log('Background update failed, keeping cached version:', error.message);
+        // DO NOTHING - keep showing cached version
+    } finally {
+        // Hide loader if it was shown
         document.querySelector('.loader').style.display = 'none';
-        showError("Failed to load profile. Please check your connection and try again.");
-        console.error('Final load error:', error);
     }
+}
+
+// Silent background fetch - no user feedback, no errors thrown
+async function loadFreshProfileData(identifier, isIdLookup) {
+    const param = isIdLookup ? "id" : "link";
+    
+    try {
+        const response = await fetchWithTimeout(
+            `${CONFIG.googleScriptUrl}?${param}=${encodeURIComponent(identifier)}`,
+            { timeout: 8000 }
+        );
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            console.log('Background update successful');
+            return data;
+        } else {
+            throw new Error(data.message || 'Profile not found');
+        }
+    } catch (error) {
+        // Silent fail - don't throw, just return null
+        console.log('Background fetch failed (silent):', error.message);
+        return null;
+    }
+}
+
+// Cache management (NO EXPIRATION)
+function cacheProfile(identifier, profileData) {
+    try {
+        const cacheKey = `profile_${identifier.toLowerCase()}`;
+        const cacheData = {
+            data: profileData,
+            lastUpdated: Date.now()
+            // NO EXPIRATION - profiles stay forever until updated
+        };
+        localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+        console.log('Profile cached');
+    } catch (error) {
+        console.warn('Could not cache profile:', error);
+    }
+}
+
+function getCachedProfile(identifier) {
+    try {
+        const cacheKey = `profile_${identifier.toLowerCase()}`;
+        const cached = localStorage.getItem(cacheKey);
+        if (!cached) return null;
+        
+        return JSON.parse(cached);
+    } catch (error) {
+        console.error('Cache read error:', error);
+        return null;
+    }
+}
+
+// Check if profile data has meaningful changes
+function hasProfileChanged(oldData, newData) {
+    const importantFields = ['Name', 'Tagline', 'ProfilePic', 'SocialLinks', 'Email', 'Phone', 'Address', 'Style', 'Status'];
+    
+    return importantFields.some(field => {
+        const oldValue = oldData[field] || '';
+        const newValue = newData[field] || '';
+        return oldValue !== newValue;
+    });
 }
 
 // Helper function with timeout
@@ -103,35 +156,6 @@ async function fetchWithTimeout(resource, options = {}) {
         clearTimeout(id);
         throw error;
     }
-}
-
-// Show retry message to user
-function showRetryMessage(attempt) {
-    const existingMessage = document.querySelector('.retry-message');
-    if (existingMessage) existingMessage.remove();
-    
-    const message = document.createElement('div');
-    message.className = 'retry-message';
-    message.style.cssText = `
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: rgba(0,0,0,0.8);
-        color: white;
-        padding: 10px 20px;
-        border-radius: 5px;
-        z-index: 10000;
-    `;
-    message.textContent = `Slow connection... Retrying (${attempt}/3)`;
-    
-    document.body.appendChild(message);
-    
-    setTimeout(() => {
-        if (message.parentNode) {
-            message.parentNode.removeChild(message);
-        }
-    }, 1900);
 }
 
 function handleProfileData(data) {
@@ -231,8 +255,30 @@ function handleProfileData(data) {
     }
 }
 
-// Rest of your functions remain the same (renderSocialLinks, showContactDetails, etc.)
-// ... [keep all your existing functions below]
+// Apply background style function
+function applyBackgroundStyle(style) {
+    const styles = {
+        corporateGradient: "linear-gradient(145deg, rgb(9, 9, 11), rgb(24, 24, 27), rgb(9, 9, 11))",
+        oceanGradient: "linear-gradient(145deg, rgb(2, 6, 23), rgb(15, 23, 42), rgb(2, 6, 23))",
+        minimal: "#18181b",
+        black: "#09090b",
+        navy: "#020617",
+        forest: "#022c22",
+        wine: "#450a0a",
+        clouds: "#0ea5e9",
+        Pink: "#9b0055",
+        SkyBlue: "#2563eb",
+        paleRed: "#f00f4d"
+    };
+
+    if (style.startsWith('linear-gradient')) {
+        document.body.style.background = style;
+    } else {
+        document.body.style.background = styles[style] || CONFIG.defaultBg;
+    }
+    document.body.style.backgroundSize = "cover";
+}
+
 function renderSocialLinks(links) {
     if (!links || typeof links !== 'string') return '';
 
@@ -280,7 +326,6 @@ function renderSocialLinks(links) {
         'quora.com': 'fab fa-quora'
     };
 
-
     const validLinks = links.split(",")
         .map(link => {
             link = link.trim();
@@ -321,6 +366,7 @@ function renderSocialLinks(links) {
         </div>
     `;
 }
+
 async function showContactDetails(contact) {
     try {
         if (!contact || typeof contact !== 'object') {
@@ -362,7 +408,7 @@ async function showContactDetails(contact) {
         const result = await Swal.fire({
             title: 'Contact Details',
             html: contactHtml,
-            background: typeof contact.style === 'object' ? contact.style?.background : contact.style || '#162949',
+            background: '#162949',
             confirmButtonText: 'Copy Details',
             showCancelButton: true,
             cancelButtonText: 'Close',
@@ -444,6 +490,7 @@ function showError(message) {
     const existingLoader = document.querySelector('.loader');
     if (existingLoader) existingLoader.remove();
 }
+
 async function showShareOptions(link) {
     try {
         // Check if Web Share API is supported
