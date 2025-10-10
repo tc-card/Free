@@ -1,169 +1,89 @@
 const CONFIG = {
   defaultBg: "url(https://tccards.tn/Assets/bg.png) center fixed",
   defaultProfilePic: "https://tccards.tn/Assets/default.png",
-  googleScriptUrl: "https://script.google.com/macros/s/AKfycbyAQ9FTmH-zPAtPobZrni_XwraT8pGum0s4Qe_mWo79ij3Q_kV_x1fkN4Oe_TjCEckr/exec"
-}
-
+  databases: {
+    id: "AKfycbyAQ9FTmH-zPAtPobZrni_XwraT8pGum0s4Qe_mWo79ij3Q_kV_x1fkN4Oe_TjCEckr",
+    plan: "free",
+  }
+};
 document.addEventListener("DOMContentLoaded", function() {
     // Set initial background
     document.body.style.background = "url(https://tccards.tn/Assets/bg.png) center fixed";
     document.body.style.backgroundSize = "cover";
     document.body.style.backdropFilter = "blur(5px)";
 
-    // Extract identifier from URL hash
-    const hash = window.location.hash.substring(1);
-    if (!hash) {
-        showError("No profile link provided");
-        return;
-    }
+  // Extract identifier from URL hash
+  const hash = window.location.hash.substring(1);
+  if (!hash) {
+    showError("No profile link provided");
+    return;
+  }
 
-    // Update URL without reload
-    const newUrl = `https://at.tccards.tn/@${hash}`;
-    window.history.replaceState(null, null, newUrl);
+  // Update URL without reload
+  const newUrl = `https://card.tccards.tn/@${hash}`;
+  window.history.replaceState(null, null, newUrl);
 
-    // Determine lookup type
-    const isIdLookup = hash.startsWith("id_");
-    const identifier = isIdLookup ? hash.split("_")[1] : hash;
+  // Determine lookup type and start search
+  const isIdLookup = hash.startsWith("id_");
+  const identifier = isIdLookup ? hash.split("_")[1] : hash;
 
-    // ALWAYS show cached version first (if exists)
-    showCachedProfileFirst(identifier, isIdLookup);
+  searchProfile(identifier, isIdLookup);
 });
 
-// Show cached version immediately, check for updates in background
-async function showCachedProfileFirst(identifier, isIdLookup) {
-    const cachedProfile = getCachedProfile(identifier);
-    
-    if (cachedProfile) {
-        console.log('Showing cached profile immediately');
-        handleProfileData(cachedProfile);
-    } else {
-        // No cache exists, show loader
-        document.querySelector('.loader').style.display = 'block';
-    }
-
-    // ALWAYS check for updates in background (silent)
-    try {
-        console.log('Checking for profile updates in background...');
-        const freshData = await loadFreshProfileData(identifier, isIdLookup);
-        
-        if (freshData) {
-            // Cache the fresh data
-            cacheProfile(identifier, freshData);
-            
-            // Only update UI if profile is different AND we already showed cached version
-            if (cachedProfile && hasProfileChanged(cachedProfile.data, freshData.data)) {
-                console.log('Profile updated, refreshing...');
-                handleProfileData(freshData);
-            } else if (!cachedProfile) {
-                // If no cache existed, show the fresh data
-                handleProfileData(freshData);
-            }
-        }
-        // If fresh data fails, DO NOTHING - keep showing cached version
-    } catch (error) {
-        console.log('Background update failed, keeping cached version:', error.message);
-        // DO NOTHING - keep showing cached version
-    } finally {
-        // Hide loader if it was shown
-        document.querySelector('.loader').style.display = 'none';
-    }
-}
-
-// Silent background fetch - no user feedback, no errors thrown
-async function loadFreshProfileData(identifier, isIdLookup) {
+// Fast profile lookup using single database, redirects to 404.html on error
+async function searchProfile(identifier, isIdLookup) {
+  try {
     const param = isIdLookup ? "id" : "link";
-    
-    try {
-        const response = await fetchWithTimeout(
-            `${CONFIG.googleScriptUrl}?${param}=${encodeURIComponent(identifier)}`,
-            { timeout: 8000 }
-        );
+    const url = `https://script.google.com/macros/s/${CONFIG.databases.id}/exec?${param}=${encodeURIComponent(identifier)}`;
 
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        if (data.status === 'success') {
-            console.log('Background update successful');
-            return data;
-        } else {
-            throw new Error(data.message || 'Profile not found');
-        }
-    } catch (error) {
-        // Silent fail - don't throw, just return null
-        console.log('Background fetch failed (silent):', error.message);
-        return null;
-    }
-}
-
-// Cache management (NO EXPIRATION)
-function cacheProfile(identifier, profileData) {
-    try {
-        const cacheKey = `profile_${identifier.toLowerCase()}`;
-        const cacheData = {
-            data: profileData,
-            lastUpdated: Date.now()
-            // NO EXPIRATION - profiles stay forever until updated
-        };
-        localStorage.setItem(cacheKey, JSON.stringify(cacheData));
-        console.log('Profile cached');
-    } catch (error) {
-        console.warn('Could not cache profile:', error);
-    }
-}
-
-function getCachedProfile(identifier) {
-    try {
-        const cacheKey = `profile_${identifier.toLowerCase()}`;
-        const cached = localStorage.getItem(cacheKey);
-        if (!cached) return null;
-        
-        return JSON.parse(cached);
-    } catch (error) {
-        console.error('Cache read error:', error);
-        return null;
-    }
-}
-
-// Check if profile data has meaningful changes
-function hasProfileChanged(oldData, newData) {
-    const importantFields = ['Name', 'Tagline', 'ProfilePic', 'SocialLinks', 'Email', 'Phone', 'Address', 'Style', 'Status'];
-    
-    return importantFields.some(field => {
-        const oldValue = oldData[field] || '';
-        const newValue = newData[field] || '';
-        return oldValue !== newValue;
+    const response = await fetchWithTimeout(url, {
+      timeout: 5000
     });
+
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+    const data = await response.json();
+    if (data?.status === "error") {
+      showError("Profile not found");
+      window.location.href = "/404.html";
+      return;
+    }
+
+    if (data && typeof data === "object") {
+      handleProfileData(data);
+    } else {
+      showError("Invalid profile data");
+    }
+  } catch (error) {
+    console.error("Profile search error:", error);
+    showError("Failed to load profile");
+  }
 }
 
 // Helper function with timeout
 async function fetchWithTimeout(resource, options = {}) {
-    const { timeout = 8000 } = options;
+  const { timeout = 8000 } = options;
 
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), timeout);
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
 
-    try {
-        const response = await fetch(resource, {
-            ...options,
-            signal: controller.signal,
-        });
-        clearTimeout(id);
-        return response;
-    } catch (error) {
-        clearTimeout(id);
-        throw error;
-    }
+  const response = await fetch(resource, {
+    ...options,
+    signal: controller.signal,
+  });
+  clearTimeout(id);
+
+  return response;
 }
-
-function handleProfileData(data) {
+function handleProfileData(data, plan) {
     const loader = document.querySelector('.loader');
     if (loader) {
-        loader.style.display = 'none';
-    }
-    
+        loader.style.transition = 'opacity 0.5s ease';
+        loader.style.opacity = '0';
+        setTimeout(() => {
+            loader.style.display = 'none';
+        }, 500);
+    }   
     // Open the data array received data.data to access the profile data
     data = data.data || data;
 
