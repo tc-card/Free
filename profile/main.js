@@ -20,7 +20,7 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 
   // Update URL without reload
-  const newUrl = `https://card.tccards.tn/@${hash}`;
+  const newUrl = `https://at.tccards.tn/@${hash}`;
   window.history.replaceState(null, null, newUrl);
 
   // Determine lookup type and start search
