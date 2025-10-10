@@ -1,88 +1,148 @@
 const CONFIG = {
   defaultBg: "url(https://tccards.tn/Assets/bg.png) center fixed",
   defaultProfilePic: "https://tccards.tn/Assets/default.png",
-  databases: {
-    id: "AKfycbxKk2ihdfSzAD5qt6cMHmTRHhEyncyfK3Qlmu4ncc2NHuOigltcG837_gNxfbdjg2lE",
-    plan: "free"
-  },
+  googleScriptUrl: "https://script.google.com/macros/s/AKfycbw34B2sJQaK2O7O2NdxnrO_U-xQAD4rXWxPnK7VWx4QcwMoff1L-R6PZ2vYlNaWlffi/exec" // Make sure this is set
 }
+
 document.addEventListener("DOMContentLoaded", function() {
     // Set initial background
     document.body.style.background = "url(https://tccards.tn/Assets/bg.png) center fixed";
     document.body.style.backgroundSize = "cover";
-  document.body.style.backdropFilter = "blur(5px)";
+    document.body.style.backdropFilter = "blur(5px)";
 
-  // Extract identifier from URL hash
-  const hash = window.location.hash.substring(1);
-  if (!hash) {
-    showError("No profile link provided");
-    return;
-  }
+    // Extract identifier from URL hash
+    const hash = window.location.hash.substring(1);
+    if (!hash) {
+        showError("No profile link provided");
+        return;
+    }
 
-  // Update URL without reload
-  const newUrl = `https://at.tccards.tn/@${hash}`;
-  window.history.replaceState(null, null, newUrl);
+    // Update URL without reload
+    const newUrl = `https://at.tccards.tn/@${hash}`;
+    window.history.replaceState(null, null, newUrl);
 
-  // Determine lookup type and start search
-  const isIdLookup = hash.startsWith("id_");
-  const identifier = isIdLookup ? hash.split("_")[1] : hash;
+    // Determine lookup type and start search
+    const isIdLookup = hash.startsWith("id_");
+    const identifier = isIdLookup ? hash.split("_")[1] : hash;
 
-  searchProfile(identifier, isIdLookup);
+    loadProfileData(identifier, isIdLookup);
 });
 
-// Fast profile lookup using single database, redirects to 404.html on error
-async function searchProfile(identifier, isIdLookup) {
-  try {
-    const param = isIdLookup ? "id" : "link";
-    const url = `https://script.google.com/macros/s/${CONFIG.databases.id}/exec?${param}=${encodeURIComponent(identifier)}`;
+// Improved loadProfileData with better error handling
+async function loadProfileData(identifier, isIdLookup) {
+    document.querySelector('.loader').style.display = 'block';
+    
+    try {
+        // Retry mechanism for slow connections
+        let retries = 3;
+        let lastError;
 
-    const response = await fetchWithTimeout(url, {
-      timeout: 5000
-    });
+        const param = isIdLookup ? "id" : "link";
+        
+        while (retries > 0) {
+            try {
+                console.log(`Attempting to fetch profile (${4 - retries}/3)...`);
+                
+                const response = await fetchWithTimeout(
+                    `${CONFIG.googleScriptUrl}?${param}=${encodeURIComponent(identifier)}`,
+                    { timeout: 10000 } // 10 second timeout
+                );
 
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    console.log('Profile loaded successfully');
+                    document.querySelector('.loader').style.display = 'none';
+                    handleProfileData(data);
+                    return;
+                } else {
+                    throw new Error(data.message || 'Profile not found');
+                }
+            } catch (error) {
+                lastError = error;
+                retries--;
+                console.warn(`Fetch failed, ${retries} retries left:`, error);
+                
+                if (retries > 0) {
+                    // Show retry message to user
+                    showRetryMessage(4 - retries);
+                    await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
+                }
+            }
+        }
+        
+        // All retries failed
+        throw lastError;
 
-    const data = await response.json();
-    if (data?.status === "error") {
-      showError("Profile not found");
-      window.location.href = "/404.html";
-      return;
+    } catch (error) {
+        document.querySelector('.loader').style.display = 'none';
+        showError("Failed to load profile. Please check your connection and try again.");
+        console.error('Final load error:', error);
     }
-
-    if (data && typeof data === "object") {
-      handleProfileData(data);
-    } else {
-      showError("Invalid profile data");
-    }
-  } catch (error) {
-    console.error("Profile search error:", error);
-    showError("Failed to load profile");
-  }
 }
 
 // Helper function with timeout
 async function fetchWithTimeout(resource, options = {}) {
-  const { timeout = 8000 } = options;
+    const { timeout = 8000 } = options;
 
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeout);
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
 
-  const response = await fetch(resource, {
-    ...options,
-    signal: controller.signal,
-  });
-  clearTimeout(id);
-
-  return response;
+    try {
+        const response = await fetch(resource, {
+            ...options,
+            signal: controller.signal,
+        });
+        clearTimeout(id);
+        return response;
+    } catch (error) {
+        clearTimeout(id);
+        throw error;
+    }
 }
-function handleProfileData(data, plan) {
+
+// Show retry message to user
+function showRetryMessage(attempt) {
+    const existingMessage = document.querySelector('.retry-message');
+    if (existingMessage) existingMessage.remove();
+    
+    const message = document.createElement('div');
+    message.className = 'retry-message';
+    message.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0,0,0,0.8);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 5px;
+        z-index: 10000;
+    `;
+    message.textContent = `Slow connection... Retrying (${attempt}/3)`;
+    
+    document.body.appendChild(message);
+    
+    setTimeout(() => {
+        if (message.parentNode) {
+            message.parentNode.removeChild(message);
+        }
+    }, 1900);
+}
+
+function handleProfileData(data) {
     const loader = document.querySelector('.loader');
     if (loader) {
         loader.style.display = 'none';
     }
+    
     // Open the data array received data.data to access the profile data
     data = data.data || data;
-    plan = plan || 'free';
+
     // Check if data is valid
     if (!data || typeof data !== 'object') {
         showError("Invalid profile data received");
@@ -103,88 +163,39 @@ function handleProfileData(data, plan) {
         showError("This profile is currently inactive");
         return;
     }
-    // Check if profile is older than 30 days
-    const now = Date.now();
-    if (now - data.timestamp >= 30 * 24 * 60 * 60 * 1000) {
-        showError("This profile has expired. Please contact support to renew.");
-        return;
-    }
 
     try {
         // Apply plan-specific features
         const container = document.querySelector(".card-container");
         container.style.display = 'block';
-        
-        // Check if profile is older than 30 days
-        const now = Date.now();
-        if (now - data.timestamp >= 30 * 24 * 60 * 60 * 1000) {
-            showError("This profile has expired. Please contact support to renew.");
-            return;
-        }
 
         // Safe data access with fallbacks
         const profileData = {
             name: data.Name || 'User',
-            link: '@' + (data.Link || 'tccards'),
+            link: data.Link || 'tccards',
             tagline: data.Tagline || '',
-            profilePic: data['Profile Picture URL'] || 'https://tccards.tn/Assets/default.png',
-            socialLinks: data['Social Links'] || '',
+            profilePic: data.ProfilePic || 'https://tccards.tn/Assets/default.png',
+            socialLinks: data.SocialLinks || '',
             email: data.Email || '',
             phone: data.Phone || '',
             address: data.Address || ''
         };
 
         // Apply background style if available
-        if (data['Selected Style']) {
-            const selectedStyle = data['Selected Style'];
-            
-            if (selectedStyle.startsWith('linear-gradient')) {
-            document.body.style.background = `${selectedStyle}`;
-            } else {
-            const styles = {
-              
-                // Professional Gradients
-                corporateGradient: { background: 'linear-gradient(145deg, rgb(9, 9, 11), rgb(24, 24, 27), rgb(9, 9, 11))' },
-                oceanGradient: { background: 'linear-gradient(145deg, rgb(2, 6, 23), rgb(15, 23, 42), rgb(2, 6, 23))' },
-                default: "url(https://www.tccards.tn//Assets/background.png) center fixed"
-            };
-
-            document.body.style.background = styles[data['Selected Style']]?.background || styles.default;
-            document.body.style.backgroundSize = "cover";
-            }
+        if (data.Style) {
+            applyBackgroundStyle(data.Style);
         }
-        const styles = {
-            corporateGradient: "linear-gradient(145deg, rgb(9, 9, 11), rgb(24, 24, 27), rgb(9, 9, 11))",
-            oceanGradient: "linear-gradient(145deg, rgb(2, 6, 23), rgb(15, 23, 42), rgb(2, 6, 23))",
-            minimal: { background: '#18181b' },
-            black: { background: '#09090b' },
-            navy: { background: '#020617' },
-            forest: { background: '#022c22' },
-            wine: { background: '#450a0a' },
-          
-            // Lighter color themes
-            clouds: { background: '#0ea5e9' },
-            Pink: { background: '#9b0055' },
-            SkyBlue: { background: '#2563eb' },
-            paleRed: { background: '#f00f4d' },
-          
-            // Professional Gradients
-            corporateGradient: { background: 'linear-gradient(145deg, rgb(9, 9, 11), rgb(24, 24, 27), rgb(9, 9, 11))' },
-            oceanGradient: { background: 'linear-gradient(145deg, rgb(2, 6, 23), rgb(15, 23, 42), rgb(2, 6, 23))' },
-            forestGradient: { background: 'linear-gradient(145deg, rgb(2, 44, 34), rgb(6, 78, 59), rgb(2, 44, 34))' },
-            burgundyGradient: { background: 'linear-gradient(145deg, rgb(69, 10, 10), rgb(127, 29, 29), rgb(69, 10, 10))' },
-            default: "url(https://tccards.tn/Assets/bg.png) cover center fixed"
-        };
+
         // Render the profile card
         container.innerHTML = `
             <div class="w-full container max-w-md p-6 md:p-24 rounded-xl shadow-lg mx-auto" style="background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px);">
-                <div class="flex justify-end mb-0 top-right" onclick="showShareOptions('${escapeHtml('@' + profileData.link)}')">
+                <div class="flex justify-end mb-0 top-right" onclick="showShareOptions('${escapeHtml('https://at.tccards.tn/@' + profileData.link)}')">
                     <div class="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center">
                         <i class="fas fa-share-alt text-gray-400"></i>
                     </div>
                 </div>
                 <div class="flex flex-col items-center">
-                    <img src="${escapeHtml(profileData.profilePic)}" class="w-32 h-32 bg-gray-800 rounded-full mb-4 cover object-cover" alt="${escapeHtml(profileData.name)}'s profile">
+                    <img src="${escapeHtml(profileData.profilePic)}" class="w-32 h-32 bg-gray-800 rounded-full mb-4 cover object-cover" alt="${escapeHtml(profileData.name)}'s profile" onerror="this.src='https://tccards.tn/Assets/default.png'">
                     <div class="w-full h-12 bg-gray-800 rounded mb-2 flex items-center justify-center">
                         <h1 class="text-xl text-2xl font-bold text-white">${escapeHtml(profileData.name)}</h1>
                     </div>
@@ -199,8 +210,7 @@ function handleProfileData(data, plan) {
                                 profilepic: profileData.profilePic,
                                 email: profileData.email,
                                 phone: profileData.phone,
-                                address: profileData.address,
-                                style: styles[data['Selected Style']]?.background || styles.default
+                                address: profileData.address
                             }))})">Get in Touch</button>
                         </div>` : ''}
                 </div>
@@ -213,20 +223,16 @@ function handleProfileData(data, plan) {
             </div>
             `;
         
-        // Show simple success notification
-        try {
-            if (typeof Swal !== 'undefined' && profileData) {
-                console.log('Profile found and loaded')
-            }
-        } catch (error) {
-            console.error('Error showing welcome message:', error);
-        }
+        console.log('Profile rendered successfully');
+        
     } catch (error) {
         console.error("Profile rendering error:", error);
         showError("Error displaying profile");
     }
 }
 
+// Rest of your functions remain the same (renderSocialLinks, showContactDetails, etc.)
+// ... [keep all your existing functions below]
 function renderSocialLinks(links) {
     if (!links || typeof links !== 'string') return '';
 

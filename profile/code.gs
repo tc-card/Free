@@ -1,74 +1,103 @@
-// Find row by link with EXACT matching (case-sensitive)
-function findRowByLink(link) {
-    const cache = CacheService.getScriptCache();
-    const cachedData = cache.get(link); 
-    if (cachedData) return JSON.parse(cachedData);
-    
-    const spreadsheet = SpreadsheetApp.openById('1tvVAN9sQ4yNPV0om2RKb8EiejoYn8eytTOEi9k26g0E');
-    const sheet = spreadsheet.getSheets()[0];
-    const data = sheet.getDataRange().getValues();
-    const headers = data[0];
-    const linkColumnIndex = headers.findIndex(h => h === 'Link');
-    
-    if (linkColumnIndex === -1) throw new Error('Link column not found');
+function findRow(identifier, byId = false) {
+  // Access spreadsheet directly - NO CACHING
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = spreadsheet.getSheetByName('Form');
+  if (!sheet) throw new Error('Form sheet not found');
 
-    const cleanLink = link.trim();
-    for (let i = 1; i < data.length; i++) {
-        if (String(data[i][linkColumnIndex]).trim() === cleanLink) {
-            const row = data[i];
-            const responseData = {};
-            headers.forEach((header, index) => {
-                responseData[header] = row[index];
-            });
-            
-            cache.put(cleanLink, JSON.stringify(responseData), 600);
-            return responseData;
-        }
+  // Get fresh data every time
+  const lastRow = sheet.getLastRow();
+  const lastCol = sheet.getLastColumn();
+  if (lastRow <= 1) return null; // No data rows
+  
+  const data = sheet.getRange(1, 1, lastRow, lastCol).getValues();
+  const headers = data[0];
+  
+  // Clean and normalize identifier
+  const cleanIdentifier = identifier.trim().toLowerCase();
+  const columnName = byId ? 'ID' : 'Link';
+  const columnIndex = headers.findIndex(h => h.toString().trim() === columnName);
+  if (columnIndex === -1) throw new Error(`${columnName} column not found`);
+
+  // Search for match - always fresh data
+  for (let i = 1; i < data.length; i++) {
+    const rowValue = String(data[i][columnIndex]).trim().toLowerCase();
+    const toCompare = byId ? cleanIdentifier : cleanIdentifier.replace(/^@/, '');
+    
+    if (rowValue === toCompare || (!byId && rowValue === `@${toCompare}`)) {
+      const responseData = {};
+      headers.forEach((header, index) => {
+        responseData[header] = data[i][index] !== null ? 
+          String(data[i][index]).trim() : '';
+      });
+      
+      // Validate required fields
+      if (!responseData.Name) {
+        throw new Error('Profile data missing required Name field');
+      }
+      
+      return responseData; // Return fresh data immediately
     }
-    return null;
+  }
+  
+  return null;
 }
 
-// Main GET request handler
 function doGet(e) {
-    const headers = {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET',
-        'Access-Control-Allow-Headers': 'Content-Type'
+  try {
+    if (!e.parameter) throw new Error('Missing parameters');
+    
+    // Validate identifier
+    const identifier = e.parameter.id || e.parameter.link;
+    if (!identifier || typeof identifier !== 'string') {
+      throw new Error('Invalid identifier parameter');
+    }
+    
+    // Search for profile - ALWAYS FRESH DATA
+    const data = findRow(identifier, !!e.parameter.id);
+    if (!data) throw new Error('Profile not found');
+
+    // Prepare response data
+    const response = {
+      status: 'success',
+      data: {
+        status: data.Status || 'Active',
+        Name: data.Name || '',
+        Link: data.Link || '',
+        Email: data.Email || '',
+        Tagline: data.Tagline || '',
+        Phone: data.Phone || '',
+        Address: data.Address || '',
+        SocialLinks: data.SocialLinks || '',
+        Style: data.Style || 'default',
+        ProfilePic: data.ProfilePic || 'https://tccards.tn/Assets/150.png',
+        Timestamp: new Date().getTime() // Add current timestamp
+      }
     };
 
-    try {
-        if (!e?.parameter?.link) {
-            throw new Error('Link parameter is required');
-        }
+    // Return response
+    const output = ContentService.createTextOutput(
+      e.parameter.callback 
+        ? `${e.parameter.callback}(${JSON.stringify(response)})`
+        : JSON.stringify(response)
+    );
 
-        console.log('Looking up link:', e.parameter.link);
-        const data = findRowByLink(e.parameter.link);
-        
-        if (!data) {
-            throw new Error('Profile not found');
-        }
+    output.setMimeType(
+      e.parameter.callback 
+        ? ContentService.MimeType.JAVASCRIPT 
+        : ContentService.MimeType.JSON
+    );
 
-        const response = {
-            status: data.Status || 'Active',
-            ...data
-        };
+    return output;
 
-        const callback = e.parameter.callback;
-        const responseText = callback 
-            ? `${callback}(${JSON.stringify(response)})`
-            : JSON.stringify(response);
-
-        return ContentService.createTextOutput(responseText)
-            .setMimeType(callback ? ContentService.MimeType.JAVASCRIPT : ContentService.MimeType.JSON)
-            .setHeaders(headers);
-
-    } catch (error) {
-        console.error('Error:', error.message);
-        return ContentService.createTextOutput(JSON.stringify({
-            status: 'error',
-            message: error.message
-        }))
-        .setMimeType(ContentService.MimeType.JSON)
-        .setHeaders(headers);
-    }
+  } catch (error) {
+    console.error('Error in doGet:', error);
+    const errorOutput = ContentService.createTextOutput(
+      JSON.stringify({
+        status: 'error',
+        message: error.message
+      })
+    );
+    errorOutput.setMimeType(ContentService.MimeType.JSON);
+    return errorOutput;
+  }
 }
