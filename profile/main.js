@@ -32,48 +32,60 @@ document.addEventListener("DOMContentLoaded", function() {
 
 // Fast profile lookup using single database, redirects to 404.html on error
 async function searchProfile(identifier, isIdLookup) {
-  try {
     const param = isIdLookup ? "id" : "link";
     const url = `https://script.google.com/macros/s/${CONFIG.databases.id}/exec?${param}=${encodeURIComponent(identifier)}`;
-
-    const response = await fetchWithTimeout(url, {
-      timeout: 5000
-    });
-
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
-    const data = await response.json();
-    if (data?.status === "error") {
-      showError("Profile not found");
-      window.location.href = "/404.html";
-      return;
+    let lastError = null;
+    for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+            const response = await fetchWithTimeout(url, {
+                timeout: 15000 // 15 seconds
+            });
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const data = await response.json();
+            if (data?.status === "error") {
+                showError("Profile not found");
+                window.location.href = "/404.html";
+                return;
+            }
+            if (data && typeof data === "object") {
+                handleProfileData(data);
+            } else {
+                showError("Invalid profile data");
+            }
+            return;
+        } catch (error) {
+            lastError = error;
+            if (error.name === 'AbortError' || error.message.includes('timeout')) {
+                if (attempt === 2) {
+                    showError("The server took too long to respond. Please try again later.");
+                    return;
+                }
+                // else, retry
+            } else {
+                break; // for other errors, don't retry
+            }
+        }
     }
-
-    if (data && typeof data === "object") {
-      handleProfileData(data);
-    } else {
-      showError("Invalid profile data");
-    }
-  } catch (error) {
-    console.error("Profile search error:", error);
-    showError("Failed to load profile");
-  }
+    console.error("Profile search error:", lastError);
+    showError("Failed to load profile. Please check your connection or try again later.");
 }
 
 // Helper function with timeout
 async function fetchWithTimeout(resource, options = {}) {
-  const { timeout = 8000 } = options;
-
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeout);
-
-  const response = await fetch(resource, {
-    ...options,
-    signal: controller.signal,
-  });
-  clearTimeout(id);
-
-  return response;
+    const { timeout = 8000 } = options;
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    try {
+        const response = await fetch(resource, {
+            ...options,
+            signal: controller.signal,
+        });
+        clearTimeout(id);
+        return response;
+    } catch (error) {
+        clearTimeout(id);
+        throw error;
+    }
 }
 function handleProfileData(data, plan) {
     const loader = document.querySelector('.loader');
@@ -175,7 +187,7 @@ function handleProfileData(data, plan) {
         // Render the profile card
         container.innerHTML = `
           <div class="w-full container max-w-md p-6 md:p-24 rounded-xl shadow-lg mx-auto" style="background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px);">
-                <div class="flex justify-end mb-0 top-right" onclick="showShareOptions('${escapeHtml(profileData.link)}')">
+                <div class="flex justify-end mb-0 top-right" onclick="showShareOptions('https://at.tccards.tn/@${escapeHtml(profileData.link)}')">
                     <div class="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center">
                         <i class="fas fa-share-alt text-gray-400"></i>
                     </div>

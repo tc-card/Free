@@ -1,44 +1,62 @@
 function findRow(identifier, byId = false) {
-  // Access spreadsheet directly - NO CACHING
+  const CACHE_EXPIRATION = 300; // 5 minutes
+  const cache = CacheService.getScriptCache();
+  const cacheKey = (byId ? 'id_' : 'link_') + identifier.toLowerCase().trim();
+
+  // Check cache
+  const cachedData = cache.get(cacheKey);
+  if (cachedData) {
+    try {
+      return JSON.parse(cachedData);
+    } catch (e) {
+      console.warn('Failed to parse cached data', e);
+      cache.remove(cacheKey);
+    }
+  }
+
+  // Access spreadsheet
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = spreadsheet.getSheetByName('Form');
   if (!sheet) throw new Error('Form sheet not found');
 
-  // Get fresh data every time
   const lastRow = sheet.getLastRow();
   const lastCol = sheet.getLastColumn();
   if (lastRow <= 1) return null; // No data rows
-  
-  const data = sheet.getRange(1, 1, lastRow, lastCol).getValues();
-  const headers = data[0];
-  
-  // Clean and normalize identifier
+
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   const cleanIdentifier = identifier.trim().toLowerCase();
   const columnName = byId ? 'ID' : 'Link';
   const columnIndex = headers.findIndex(h => h.toString().trim() === columnName);
   if (columnIndex === -1) throw new Error(`${columnName} column not found`);
 
-  // Search for match - always fresh data
-  for (let i = 1; i < data.length; i++) {
-    const rowValue = String(data[i][columnIndex]).trim().toLowerCase();
-    const toCompare = byId ? cleanIdentifier : cleanIdentifier.replace(/^@/, '');
-    
-    if (rowValue === toCompare || (!byId && rowValue === `@${toCompare}`)) {
-      const responseData = {};
-      headers.forEach((header, index) => {
-        responseData[header] = data[i][index] !== null ? 
-          String(data[i][index]).trim() : '';
-      });
-      
-      // Validate required fields
-      if (!responseData.Name) {
-        throw new Error('Profile data missing required Name field');
-      }
-      
-      return responseData; // Return fresh data immediately
-    }
+  // Use TextFinder for fast search
+  const colRange = sheet.getRange(2, columnIndex + 1, lastRow - 1, 1); // skip header
+  const toCompare = byId ? cleanIdentifier : cleanIdentifier.replace(/^@/, '');
+  let found = colRange.createTextFinder(toCompare).matchCase(false).matchEntireCell(true).findNext();
+
+  // If not found, try with @ prefix (for link only)
+  if (!found && !byId && !toCompare.startsWith('@')) {
+    found = colRange.createTextFinder('@' + toCompare).matchCase(false).matchEntireCell(true).findNext();
   }
-  
+
+  if (found) {
+    const rowIdx = found.getRow();
+    const rowData = sheet.getRange(rowIdx, 1, 1, lastCol).getValues()[0];
+    const responseData = {};
+    headers.forEach((header, index) => {
+      responseData[header] = rowData[index] !== null ? String(rowData[index]).trim() : '';
+    });
+    // Validate required fields
+    if (!responseData.Name) {
+      throw new Error('Profile data missing required Name field');
+    }
+    try {
+      cache.put(cacheKey, JSON.stringify(responseData), CACHE_EXPIRATION);
+    } catch (e) {
+      console.error('Failed to cache data:', e);
+    }
+    return responseData;
+  }
   return null;
 }
 
@@ -52,25 +70,19 @@ function doGet(e) {
       throw new Error('Invalid identifier parameter');
     }
     
-    // Search for profile - ALWAYS FRESH DATA
+    // Search for profile
     const data = findRow(identifier, !!e.parameter.id);
     if (!data) throw new Error('Profile not found');
 
-    // Prepare response data
+    // Prepare safe response data
     const response = {
       status: 'success',
       data: {
-        status: data.Status || 'Active',
+        status: data.Status || 'Inactive',
         Name: data.Name || '',
         Link: data.Link || '',
-        Email: data.Email || '',
-        Tagline: data.Tagline || '',
-        Phone: data.Phone || '',
-        Address: data.Address || '',
-        SocialLinks: data.SocialLinks || '',
-        Style: data.Style || 'default',
-        ProfilePic: data.ProfilePic || 'https://tccards.tn/Assets/150.png',
-        Timestamp: new Date().getTime() // Add current timestamp
+        // Add other fields as needed
+        ...sanitizeProfileData(data)
       }
     };
 
@@ -100,4 +112,18 @@ function doGet(e) {
     errorOutput.setMimeType(ContentService.MimeType.JSON);
     return errorOutput;
   }
+}
+
+// Helper functions
+function sanitizeProfileData(data) {
+  const safeData = {};
+  for (const key in data) {
+    if (data.hasOwnProperty(key)) {
+      // Basic XSS protection
+      safeData[key] = data[key] ? data[key].toString()
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;') : '';
+    }
+  }
+  return safeData;
 }
