@@ -120,11 +120,11 @@ function handleProfileData(data, plan) {
         return;
     }
     // Check if profile is older than 30 days
-    const now = Date.now();
-    if (now - data.timestamp >= 30 * 24 * 60 * 60 * 1000) {
-        showError("This profile has expired. Please contact support to renew.");
-        return;
-    }
+    // const now = Date.now();
+    // if (typeof data.timestamp === "number" && now - data.timestamp >= 30 * 24 * 60 * 60 * 1000) {
+    //   showError("This profile has expired. Please contact support to renew.");
+    //   return;
+    // }
 
     try {
         // Apply plan-specific features
